@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Visual Snow Relief Kit — Control Panel</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="logo"></span>
+    <div>
+      <h1>Visual Snow Relief Kit</h1>
+      <div class="sub" id="status">—</div>
+    </div>
+  </div>
+  <div class="head-actions">
+    <label class="switch big"><input type="checkbox" id="enabled"><span></span><b>Overlay</b></label>
+    <button id="hide" class="ghost" title="Hide to tray">Hide</button>
+    <button id="quit" class="ghost danger">Quit</button>
+  </div>
+</header>
+
+<main>
+  <section class="col left">
+    <div class="card">
+      <div class="card-head"><h2>Preset</h2></div>
+      <div class="row">
+        <select id="preset"></select>
+        <button id="savePreset" title="Save current layers as a user preset">Save as…</button>
+      </div>
+      <div class="row small">
+        <button id="export" class="ghost">Export JSON</button>
+        <button id="import" class="ghost">Import JSON</button>
+        <button id="deletePreset" class="ghost danger" hidden>Delete preset</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Layers</h2><span class="hint" id="layerCount"></span></div>
+      <ul id="layers"></ul>
+      <div class="row">
+        <select id="addType"></select>
+        <button id="add">Add layer</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Preview</h2>
+        <div class="seg" id="bgSeg">
+          <button data-bg="light" class="on">Light</button>
+          <button data-bg="dark">Dark</button>
+          <button data-bg="scene">Scene</button>
+        </div>
+      </div>
+      <div class="preview bg-light" id="preview">
+        <div class="scene"><div class="sky"></div><div class="text">The quick brown fox jumps over the lazy dog. 0123456789</div></div>
+        <canvas id="pv"></canvas>
+      </div>
+      <div class="hint">The preview uses the same renderer as the overlay. Dot sizes are in device pixels, so what you see here is what you get on screen.</div>
+    </div>
+  </section>
+
+  <section class="col right">
+    <div class="card" id="layerCard">
+      <div class="card-head">
+        <input id="lname" class="name" placeholder="Layer name">
+        <select id="ltype"></select>
+      </div>
+      <p class="desc" id="ldesc"></p>
+      <div id="controls"></div>
+      <div class="row small">
+        <button id="reseed" class="ghost">New seed</button>
+        <button id="dup" class="ghost">Duplicate</button>
+        <button id="del" class="ghost danger">Remove layer</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>General</h2></div>
+      <div class="grid2">
+        <label>Global opacity <output id="gopOut"></output><input type="range" id="gop" min="0" max="1" step="0.01"></label>
+        <label>FPS cap <output id="fpsOut"></output><input type="range" id="fps" min="5" max="144" step="1"></label>
+      </div>
+      <h3>Displays</h3>
+      <div id="displays" class="chips"></div>
+      <h3>Hotkeys</h3>
+      <div class="grid2">
+        <label>Toggle overlay <input id="hkToggle" class="text"></label>
+        <label>Open panel <input id="hkPanel" class="text"></label>
+      </div>
+      <div class="hint">Electron accelerator format, for example <code>CommandOrControl+Alt+V</code>. Changes apply when you leave the field.</div>
+      <label class="switch"><input type="checkbox" id="login"><span></span>Start at login (Windows and macOS)</label>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Calibration</h2></div>
+      <div class="grid2">
+        <label>Screen diagonal (inches) <input type="number" id="diag" class="text" min="5" max="100" step="0.1"></label>
+        <label>Viewing distance (cm) <input type="number" id="dist" class="text" min="20" max="300" step="1"></label>
+      </div>
+      <div class="hint" id="calib"></div>
+    </div>
+
+    <div class="card about">
+      <div class="card-head"><h2>About</h2></div>
+      <div class="hint" id="about"></div>
+      <div class="hint">Research defaults: dots under 2 arcmin, about 18 Hz, about 3 percent density, low contrast. Black-and-white is the most common type, then transparent, flashing and coloured.</div>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+<dialog id="nameDlg">
+  <form method="dialog">
+    <h2>Preset name</h2>
+    <input id="nameInput" class="text" autofocus maxlength="60">
+    <div class="row"><button value="cancel" class="ghost" type="submit">Cancel</button><button value="ok" class="primary" type="submit" id="nameOk">Save</button></div>
+  </form>
+</dialog>
+<script src="presets.js"></script>
+<script src="noise.js"></script>
+<script src="panel.js"></script>
+</body>
+</html>

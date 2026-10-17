@@ -1,0 +1,19 @@
+{
+  "name": "visual-snow-relief-kit",
+  "productName": "Visual Snow Relief Kit",
+  "version": "1.0.0",
+  "description": "Always-on-top, click-through noise and grain overlay for the whole desktop. Many noise types, research-based defaults, control panel.",
+  "main": "src/main.js",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "electron .",
+    "build": "node scripts/build.js",
+    "build:linux": "node scripts/build.js linux",
+    "build:win": "node scripts/build.js win32",
+    "build:mac": "node scripts/build.js darwin"
+  },
+  "devDependencies": {
+    "@electron/packager": "^18.3.6",
+    "electron": "^33.4.11"
+  }
+}
