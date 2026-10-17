@@ -10,17 +10,10 @@ Windows, macOS and Linux. No installer. Unzip and run. Apache 2.0 licence.
 
 ## What it is for
 
-**Showing someone what you see.** Visual snow is hard to describe. "Like TV static, but on everything" never lands. Put the overlay on, hand them the mouse, and they see it on their own desktop, over their own windows, while they work. Adjust the sliders until it matches yours.
-
-**Matching and recording your own snow.** The Clinical preset starts at the published averages. The Calibration card converts pixel size to arcminutes for your screen and viewing distance, so your settings mean the same thing on any screen. Export the result as JSON and keep it. Compare it month to month, or bring it to an appointment.
-
-**Clinic and research demos.** Clinicians and researchers can show the full range of reported snow on any laptop: black-and-white, coloured, transparent, flashing, with floaters, with afterglow. No special hardware.
 
 **Habituation and masking.** Some people with visual snow report that a controlled, steady noise field is easier to live with than the one their brain makes, and that time spent with a matched simulation makes their own snow less intrusive. The app makes that experiment easy and reversible. This is not a treatment claim. There is no clinical evidence that overlays treat visual snow syndrome. Stop if it makes things worse.
 
-**Comfort, focus and style.** Film grain and soft static reduce the flat, hard look of large bright screens for some people. Others just like the look. The grain, CRT and mosaic presets are for that.
-
-**Testing and accessibility work.** Designers can check whether an interface still reads with 3 percent dynamic noise over it, the way a person with visual snow sees it.
+**Comfort, focus and style.** Film grain and soft static reduce the flat, hard look of large bright screens for some people.
 
 ## What the research says, and how it set the defaults
 
