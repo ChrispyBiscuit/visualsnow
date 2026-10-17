@@ -164,7 +164,7 @@ Flicker can trigger migraine or, rarely, seizures in people who are sensitive to
 
 ## Author
 
-Made by Chris Villarreal. [LinkedIn](https://www.linkedin.com/in/LINKEDIN-HANDLE) · [GitHub](https://github.com/ChrispyBiscuit)
+Made by Chris Villarreal. [LinkedIn](https://www.linkedin.com/in/chris26/) · [GitHub](https://github.com/ChrispyBiscuit)
 
 Issues and pull requests are welcome.
 
