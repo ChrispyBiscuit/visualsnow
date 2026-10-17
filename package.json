@@ -1,7 +1,7 @@
 {
   "name": "visual-snow-relief-kit",
   "productName": "Visual Snow Relief Kit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Always-on-top, click-through noise and grain overlay for the whole desktop. Many noise types, research-based defaults, control panel.",
   "main": "src/main.js",
   "license": "Apache-2.0",

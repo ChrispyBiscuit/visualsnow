@@ -236,6 +236,7 @@
     $('fps').value = S.maxFps; $('fpsOut').textContent = S.maxFps;
     $('hkToggle').value = S.hotkeys.toggle; $('hkPanel').value = S.hotkeys.panel;
     $('login').checked = !!S.launchAtLogin;
+    $('keepTop').checked = S.keepOnTop !== false;
     $('diag').value = S.calibration.diagonalInches; $('dist').value = S.calibration.distanceCm;
     renderDisplays(); renderCalib();
   }
@@ -244,6 +245,7 @@
   $('hkToggle').addEventListener('change', () => { S.hotkeys.toggle = $('hkToggle').value.trim(); push(); toast('Hotkey updated'); });
   $('hkPanel').addEventListener('change', () => { S.hotkeys.panel = $('hkPanel').value.trim(); push(); toast('Hotkey updated'); });
   $('login').addEventListener('change', () => { S.launchAtLogin = $('login').checked; push(); });
+  $('keepTop').addEventListener('change', () => { S.keepOnTop = $('keepTop').checked; push(); });
   $('diag').addEventListener('input', () => { S.calibration.diagonalInches = Number($('diag').value) || 24; renderCalib(); renderControls(); push(); });
   $('dist').addEventListener('input', () => { S.calibration.distanceCm = Number($('dist').value) || 60; renderCalib(); renderControls(); push(); });
   function renderDisplays() {

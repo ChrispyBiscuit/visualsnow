@@ -64,6 +64,7 @@
       displays: 'all',
       hotkeys: { toggle: 'CommandOrControl+Alt+V', panel: 'CommandOrControl+Alt+Shift+V' },
       launchAtLogin: false,
+      keepOnTop: true,
       calibration: { diagonalInches: 24, distanceCm: 60 },
       preset: 'clinical',
       layers: presetLayers('clinical'),

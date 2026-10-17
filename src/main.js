@@ -106,6 +106,23 @@ function rebuildOverlays() {
     overlays.set(d.id, overlayFor(d));
   }
 }
+// Other topmost windows, the Start menu, UAC prompts and some games push the
+// overlay down the topmost stack and nothing puts it back. Re-assert on a timer.
+let topTimer = null;
+function keepOnTop() {
+  clearInterval(topTimer);
+  if (settings.keepOnTop === false) return;
+  topTimer = setInterval(() => {
+    if (!settings.enabled) return;
+    for (const w of overlays.values()) {
+      if (w.isDestroyed() || !w.isVisible()) continue;
+      try {
+        if (!w.isAlwaysOnTop()) w.setAlwaysOnTop(true, 'screen-saver', 1);
+        w.moveTop();
+      } catch (_) {}
+    }
+  }, 1000);
+}
 function broadcast() {
   for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send('settings', settings);
   if (panel && !panel.isDestroyed()) panel.webContents.send('settings', settings);
@@ -182,6 +199,7 @@ ipcMain.on('settings:set', (_e, s) => {
   saveSettings();
   if (JSON.stringify(settings.hotkeys) !== prevHot) registerHotkeys();
   if (settings.launchAtLogin !== prevLogin) applyLoginItem();
+  keepOnTop();
   for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send('settings', settings);
   updateTray();
 });
@@ -262,6 +280,7 @@ else {
     applyLoginItem();
     const start = () => {
       rebuildOverlays();
+      keepOnTop();
       if (!process.argv.includes('--hidden')) showPanel();
     };
     // Linux transparency needs a short delay after ready.
