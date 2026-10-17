@@ -1,7 +1,11 @@
 name: Release
 
+# Builds the portable zips on every push to main and publishes them as a
+# GitHub release tagged v<version> from package.json. Bump the version to cut
+# a new release. A push with the same version updates the existing release.
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
@@ -21,11 +25,14 @@ jobs:
       - run: npm run build
       - name: Remove unpacked folders
         run: rm -rf dist/Visual\ Snow*
+      - name: Read version
+        id: v
+        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - name: Publish release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: Visual Snow Relief Kit ${{ github.ref_name }}
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: Visual Snow Relief Kit ${{ steps.v.outputs.tag }}
           body: |
             Portable zips. Unzip and run. No installer.
 
