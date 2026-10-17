@@ -106,8 +106,8 @@ To uninstall, quit from the tray and delete the folder.
 ### From source
 
 ```
-git clone https://github.com/ChrispyBiscuit/visual-snow-relief-kit.git
-cd visual-snow-relief-kit
+git clone https://github.com/ChrispyBiscuit/visualsnow.git
+cd visualsnow
 npm install
 npm start
 ```
