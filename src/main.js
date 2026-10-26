@@ -1,10 +1,13 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, screen, globalShortcut, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, nativeTheme, screen, globalShortcut, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Presets = require('./presets');
 
+const REPO_URL = 'https://github.com/ChrispyBiscuit/visualsnow';
+
 // Transparent windows on Linux need this before app is ready.
 app.commandLine.appendSwitch('enable-transparent-visuals');
+if (process.env.VS_USERDATA) app.setPath('userData', process.env.VS_USERDATA);
 
 const isMac = process.platform === 'darwin';
 const isLinux = process.platform === 'linux';
@@ -12,11 +15,13 @@ const isWin = process.platform === 'win32';
 
 let settings = null;
 let settingsPath = null;
-let overlays = new Map(); // displayId -> BrowserWindow
+const overlays = new Map(); // displayId -> BrowserWindow
 let panel = null;
 let tray = null;
 let saveTimer = null;
 let quitting = false;
+let hotkeyStatus = {};
+let hotkeysSuspended = false;
 
 // ---------- settings file ----------
 function resolveSettingsPath() {
@@ -32,17 +37,10 @@ function resolveSettingsPath() {
 }
 function loadSettings() {
   settingsPath = resolveSettingsPath();
-  const d = Presets.defaults();
-  try {
-    const raw = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-    settings = Object.assign(d, raw);
-    settings.hotkeys = Object.assign(d.hotkeys, raw.hotkeys || {});
-    settings.calibration = Object.assign(d.calibration, raw.calibration || {});
-    if (!Array.isArray(settings.layers)) settings.layers = d.layers;
-  } catch (_) {
-    settings = d;
-    saveSettings();
-  }
+  let raw = null;
+  try { raw = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch (_) { raw = null; }
+  settings = Presets.migrateSettings(raw);
+  saveSettings();
 }
 function saveSettings() {
   clearTimeout(saveTimer);
@@ -55,21 +53,40 @@ function saveSettings() {
 }
 
 // ---------- icon ----------
-function makeIcon(size) {
-  // Simple generated icon: dark rounded square with scattered white dots.
+// Rounded square, blue-to-navy, with a fixed scatter of dots. Supersampled for clean edges.
+const ICON_DOTS = [[0.22, 0.30, 0.07], [0.68, 0.24, 0.06], [0.74, 0.62, 0.075], [0.40, 0.78, 0.06], [0.46, 0.46, 0.055], [0.18, 0.66, 0.05]];
+function makeIcon(size, off) {
   const buf = Buffer.alloc(size * size * 4);
-  let s = 12345;
-  const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const SS = 4, r = 0.24;
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    let cov = 0, dot = 0;
+    for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) {
+      const u = (x + (sx + 0.5) / SS) / size, v = (y + (sy + 0.5) / SS) / size;
+      const qx = Math.max(Math.abs(u - 0.5) - (0.5 - r), 0), qy = Math.max(Math.abs(v - 0.5) - (0.5 - r), 0);
+      if (Math.hypot(qx, qy) <= r) {
+        cov++;
+        if (ICON_DOTS.some(([dx, dy, dr]) => Math.hypot(u - dx, v - dy) <= dr * (size < 24 ? 1.25 : 1))) dot++;
+      }
+    }
     const i = (y * size + x) * 4;
-    const m = size * 0.12;
-    const inside = x >= m * 0.3 && x < size - m * 0.3 && y >= m * 0.3 && y < size - m * 0.3;
-    if (!inside) { buf[i + 3] = 0; continue; }
-    const dot = rnd() < 0.08;
-    const v = dot ? 235 : 40 + Math.floor(rnd() * 20);
-    buf[i] = v; buf[i + 1] = v; buf[i + 2] = dot ? 255 : v + 10; buf[i + 3] = 255;
+    const a = cov / (SS * SS); const d = cov ? dot / cov : 0;
+    const t = (x + y) / (2 * size);
+    let R = 74 + (29 - 74) * t, G = 99 + (35 - 99) * t, B = 216 + (64 - 216) * t;
+    if (off) { const g = (R + G + B) / 3; R = G = B = g * 0.8; }
+    buf[i] = Math.round(R + (255 - R) * d);
+    buf[i + 1] = Math.round(G + (255 - G) * d);
+    buf[i + 2] = Math.round(B + (255 - B) * d);
+    buf[i + 3] = Math.round(255 * a * (off ? 0.6 : 1));
   }
+  // nativeImage wants BGRA on all platforms
+  for (let i = 0; i < buf.length; i += 4) { const t = buf[i]; buf[i] = buf[i + 2]; buf[i + 2] = t; }
   return nativeImage.createFromBuffer(buf, { width: size, height: size });
+}
+function trayImage(off) {
+  const img = makeIcon(isMac ? 18 : 16, off);
+  const hi = makeIcon(isMac ? 36 : 32, off);
+  img.addRepresentation({ scaleFactor: 2, width: hi.getSize().width, height: hi.getSize().height, buffer: hi.toBitmap() });
+  return img;
 }
 
 // ---------- overlays ----------
@@ -89,10 +106,7 @@ function overlayFor(display) {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   win.setMenu(null);
   win.loadFile(path.join(__dirname, 'overlay.html'), { query: { display: String(display.id) } });
-  win.once('ready-to-show', () => {
-    win.setBounds(b);
-    win.showInactive();
-  });
+  win.once('ready-to-show', () => { win.setBounds(b); win.showInactive(); });
   win.on('closed', () => overlays.delete(display.id));
   return win;
 }
@@ -119,57 +133,65 @@ function keepOnTop() {
       try {
         if (!w.isAlwaysOnTop()) w.setAlwaysOnTop(true, 'screen-saver', 1);
         w.moveTop();
-      } catch (_) {}
+      } catch (_) { /* window closing */ }
     }
   }, 1000);
 }
+function sendOverlays() { for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send('settings', settings); }
 function broadcast() {
-  for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send('settings', settings);
+  sendOverlays();
   if (panel && !panel.isDestroyed()) panel.webContents.send('settings', settings);
   updateTray();
 }
-function setEnabled(on) {
-  settings.enabled = !!on;
-  saveSettings();
-  broadcast();
-}
+function setEnabled(on) { settings.enabled = !!on; saveSettings(); broadcast(); }
 
 // ---------- panel ----------
+function applyTheme() {
+  nativeTheme.themeSource = ['light', 'dark'].includes(settings.theme) ? settings.theme : 'system';
+}
 function showPanel() {
   if (panel && !panel.isDestroyed()) { panel.show(); panel.focus(); return; }
   panel = new BrowserWindow({
-    width: 980, height: 720, minWidth: 760, minHeight: 520,
-    title: 'Visual Snow Relief Kit — Control Panel',
-    backgroundColor: '#14161a',
-    icon: makeIcon(64),
+    width: 1240, height: 800, minWidth: 960, minHeight: 640,
+    title: 'Visual Snow Relief Kit',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0d0e11' : '#f3f4f6',
+    icon: makeIcon(128),
     autoHideMenuBar: true,
+    show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true }
   });
   panel.setMenuBarVisibility(false);
   panel.loadFile(path.join(__dirname, 'panel.html'));
+  panel.once('ready-to-show', () => panel.show());
   panel.on('close', (e) => { if (!quitting) { e.preventDefault(); panel.hide(); } });
+  panel.webContents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' }; });
 }
 
 // ---------- tray ----------
 function updateTray() {
   if (!tray) return;
+  const presetItems = Presets.PRESET_GROUPS.map((g) => ({
+    label: g.name,
+    submenu: Presets.BUILTIN.filter((p) => p.group === g.id).map((p) => ({
+      label: p.name, type: 'radio', checked: settings.preset === p.id,
+      click: () => { settings.preset = p.id; settings.layers = Presets.presetLayers(p.id); saveSettings(); broadcast(); }
+    }))
+  }));
   const menu = Menu.buildFromTemplate([
-    { label: settings.enabled ? 'Overlay: ON' : 'Overlay: OFF', enabled: false },
-    { label: settings.enabled ? 'Turn off' : 'Turn on', accelerator: settings.hotkeys.toggle, click: () => setEnabled(!settings.enabled) },
-    { label: 'Control panel…', accelerator: settings.hotkeys.panel, click: showPanel },
+    { label: settings.enabled ? 'Overlay on' : 'Overlay off', type: 'checkbox', checked: !!settings.enabled, accelerator: settings.hotkeys.toggle || undefined, click: () => setEnabled(!settings.enabled) },
+    { label: 'Open Visual Snow Relief Kit…', accelerator: settings.hotkeys.panel || undefined, click: showPanel },
     { type: 'separator' },
-    { label: 'Presets', submenu: Presets.BUILTIN.map((p) => ({ label: p.name, type: 'radio', checked: settings.preset === p.id, click: () => { settings.preset = p.id; settings.layers = Presets.presetLayers(p.id); saveSettings(); broadcast(); } })) },
+    { label: 'Presets', submenu: presetItems },
     { type: 'separator' },
     { label: 'Open settings folder', click: () => shell.showItemInFolder(settingsPath) },
     { label: 'Quit', click: () => { quitting = true; app.quit(); } }
   ]);
   tray.setContextMenu(menu);
-  tray.setToolTip('Visual Snow Relief Kit — ' + (settings.enabled ? 'on' : 'off'));
+  tray.setImage(trayImage(!settings.enabled));
+  tray.setToolTip('Visual Snow Relief Kit · ' + (settings.enabled ? 'on' : 'off'));
 }
 function makeTray() {
-  const img = makeIcon(isMac ? 22 : 32);
-  if (isMac) img.setTemplateImage(false);
-  tray = new Tray(img);
+  tray = new Tray(trayImage(!settings.enabled));
   tray.on('click', () => { if (isWin) showPanel(); });
   tray.on('double-click', showPanel);
   updateTray();
@@ -178,37 +200,49 @@ function makeTray() {
 // ---------- hotkeys ----------
 function registerHotkeys() {
   globalShortcut.unregisterAll();
-  const tryReg = (acc, fn) => { try { if (acc) globalShortcut.register(acc, fn); } catch (e) { console.error('hotkey failed', acc, e.message); } };
-  tryReg(settings.hotkeys.toggle, () => setEnabled(!settings.enabled));
-  tryReg(settings.hotkeys.panel, showPanel);
+  hotkeyStatus = {};
+  if (hotkeysSuspended) return;
+  const tryReg = (key, fn) => {
+    const acc = settings.hotkeys[key];
+    if (!acc) return;
+    try { hotkeyStatus[key] = globalShortcut.register(acc, fn); } catch (_) { hotkeyStatus[key] = false; }
+  };
+  tryReg('toggle', () => setEnabled(!settings.enabled));
+  tryReg('panel', showPanel);
 }
 
 function applyLoginItem() {
   if (isLinux || process.defaultApp) return;
-  try { app.setLoginItemSettings({ openAtLogin: !!settings.launchAtLogin, args: ['--hidden'] }); } catch (_) {}
+  try { app.setLoginItemSettings({ openAtLogin: !!settings.launchAtLogin, args: ['--hidden'] }); } catch (_) { /* unsupported */ }
 }
 
 // ---------- IPC ----------
 ipcMain.handle('settings:get', () => settings);
-ipcMain.handle('displays:get', () => screen.getAllDisplays().map((d) => ({ id: d.id, bounds: d.bounds, scaleFactor: d.scaleFactor, label: d.label || '', internal: d.internal, primary: d.id === screen.getPrimaryDisplay().id })));
-ipcMain.handle('app:info', () => ({ version: app.getVersion(), platform: process.platform, settingsPath, electron: process.versions.electron }));
+ipcMain.handle('displays:get', () => {
+  const primary = screen.getPrimaryDisplay().id;
+  return screen.getAllDisplays().map((d) => ({ id: d.id, bounds: d.bounds, scaleFactor: d.scaleFactor, label: d.label || '', internal: d.internal, primary: d.id === primary, hz: Math.round(d.displayFrequency || 0) || null }));
+});
+ipcMain.handle('app:info', () => ({ version: app.getVersion(), platform: process.platform, settingsPath, electron: process.versions.electron, repo: REPO_URL }));
+ipcMain.handle('hotkeys:status', () => hotkeyStatus);
+ipcMain.on('hotkeys:suspend', (_e, on) => { hotkeysSuspended = !!on; registerHotkeys(); });
 ipcMain.on('settings:set', (_e, s) => {
-  const prevHot = JSON.stringify(settings.hotkeys);
-  const prevLogin = settings.launchAtLogin;
-  settings = s;
+  const prev = settings;
+  settings = Presets.migrateSettings(s);
   saveSettings();
-  if (JSON.stringify(settings.hotkeys) !== prevHot) registerHotkeys();
-  if (settings.launchAtLogin !== prevLogin) applyLoginItem();
+  if (JSON.stringify(settings.hotkeys) !== JSON.stringify(prev.hotkeys)) registerHotkeys();
+  if (settings.launchAtLogin !== prev.launchAtLogin) applyLoginItem();
+  if (settings.theme !== prev.theme) applyTheme();
   keepOnTop();
-  for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send('settings', settings);
+  sendOverlays();
   updateTray();
 });
 ipcMain.on('overlay:toggle', () => setEnabled(!settings.enabled));
 ipcMain.on('app:quit', () => { quitting = true; app.quit(); });
 ipcMain.on('panel:hide', () => panel && panel.hide());
+ipcMain.on('shell:open', (_e, url) => { if (typeof url === 'string' && /^https:\/\//.test(url)) shell.openExternal(url); });
 ipcMain.handle('settings:export', async (_e, json) => {
   const r = await dialog.showSaveDialog(panel, { defaultPath: 'visual-snow-preset.json', filters: [{ name: 'JSON', extensions: ['json'] }] });
-  if (r.canceled) return false;
+  if (r.canceled || !r.filePath) return false;
   fs.writeFileSync(r.filePath, json);
   return true;
 });
@@ -221,50 +255,58 @@ ipcMain.handle('settings:import', async () => {
 // ---------- smoke test (VS_SMOKE=<outdir>) ----------
 function smokeTest() {
   const outDir = process.env.VS_SMOKE;
-  const log = (m) => console.log('[smoke]', m);
+  const log = (m) => { console.log('[smoke]', m); try { fs.appendFileSync(path.join(outDir, 'log.txt'), m + '\n'); } catch (_) {} };
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   app.on('web-contents-created', (_e, wc) => {
-    wc.on('console-message', (_ev, level, msg, line, src) => log(`console[${level}] ${path.basename(src)}:${line} ${msg}`));
+    wc.on('console-message', (_ev, level, msg, line, src) => { if (level >= 2) log(`console[${level}] ${path.basename(src || '')}:${line} ${msg}`); });
     wc.on('render-process-gone', (_ev, d) => log('renderer gone ' + JSON.stringify(d)));
   });
   setTimeout(async () => {
     try {
-      let i = 0;
-      for (const w of overlays.values()) {
-        const img = await w.webContents.capturePage();
-        fs.writeFileSync(path.join(outDir, `overlay${i++}.png`), img.toPNG());
-        log(`overlay bounds ${JSON.stringify(w.getBounds())} ignoreMouse ok`);
+      const js = (code) => panel.webContents.executeJavaScript(code);
+      const shot = async (name, rect) => fs.writeFileSync(path.join(outDir, name + '.png'), (await panel.webContents.capturePage(rect)).toPNG());
+      log('migrated layers ' + JSON.stringify(settings.layers.map((l) => [l.type, l.mask && l.mask.shape, l.mod && l.mod.target])));
+      for (const [i, w] of [...overlays.values()].entries()) {
+        fs.writeFileSync(path.join(outDir, `overlay${i}.png`), (await w.webContents.capturePage()).toPNG());
+        log(`overlay ${i} bounds ${JSON.stringify(w.getBounds())}`);
       }
-      if (panel) {
-        const img = await panel.webContents.capturePage();
-        fs.writeFileSync(path.join(outDir, 'panel.png'), img.toPNG());
-        // walk through every preset and type to shake out shader/UI errors
-        for (const p of Presets.BUILTIN) {
-          await panel.webContents.executeJavaScript(`(()=>{const s=document.getElementById('preset');s.value=${JSON.stringify(p.id)};s.dispatchEvent(new Event('change'));})()`);
-          await new Promise((r) => setTimeout(r, 250));
-        }
-        await panel.webContents.executeJavaScript(`(()=>{document.querySelector('[data-bg=scene]').click();})()`);
-        await new Promise((r) => setTimeout(r, 1200));
-        log('dom ' + await panel.webContents.executeJavaScript(`JSON.stringify({enabled: document.getElementById('enabled').checked, preview: document.getElementById('preview').className, layers: document.querySelectorAll('#layers li').length})`));
-        const img2 = await panel.webContents.capturePage();
-        fs.writeFileSync(path.join(outDir, 'panel2.png'), img2.toPNG());
-        if (process.env.VS_SMOKE_TYPES) {
-          for (const bg of ['light', 'dark']) {
-            await panel.webContents.executeJavaScript(`document.querySelector('[data-bg=${bg}]').click()`);
-            for (const t of Presets.TYPES) {
-              await panel.webContents.executeJavaScript(`(()=>{while(document.querySelector('#del')&&document.querySelectorAll('#layers li').length){document.querySelector('#del').click();}const s=document.getElementById('addType');s.value=${JSON.stringify(t.id)};document.getElementById('add').click();})()`);
-              await new Promise((r) => setTimeout(r, 1500));
-              const rect = await panel.webContents.executeJavaScript(`(()=>{const r=document.getElementById('preview').getBoundingClientRect();return {x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height)};})()`);
-              const im = await panel.webContents.capturePage(rect);
-              fs.writeFileSync(path.join(outDir, `type-${t.id}-${bg}.png`), im.toPNG());
-            }
+      log('dlg ' + await js(`(()=>{const d=document.querySelector('dialog[open]'); return d ? d.id + ' op=' + getComputedStyle(d).opacity + ' disp=' + getComputedStyle(d).display + ' rect=' + JSON.stringify(d.getBoundingClientRect()) : 'none';})()`));
+      await shot('firstrun');
+      await js(`document.getElementById('frStart').click()`);
+      await wait(1500); await shot('panel');
+      await js(`window.__vs.openTypes('add')`); await wait(4000); await shot('types');
+      await js(`document.getElementById('typeDlg').close()`);
+      await js(`window.__vs.openPresets()`); await wait(4000); await shot('presets');
+      await js(`document.getElementById('presetDlg').close()`);
+      for (const tab of ['general', 'hotkeys', 'calibration', 'safety', 'about']) { await js(`window.__vs.openSettings('${tab}')`); await wait(300); await shot('settings-' + tab); }
+      await js(`document.getElementById('settingsDlg').close()`);
+      // one layer with every group in use
+      await js(`(()=>{const L=VSPresets.layer('patchy',{mask:{shape:2,size:0.4,feather:0.5},mod:{target:2,depth:0.6,period:30},schedule:{on:true,from:'08:00',to:'20:00'}});window.__vs.setLayers([L]);})()`);
+      await wait(400); await shot('inspector-full');
+      if (process.env.VS_SMOKE_TYPES) {
+        const rect = await js(`(()=>{const r=document.getElementById('preview').getBoundingClientRect();return {x:Math.round(r.x)+1,y:Math.round(r.y)+1,width:480,height:300};})()`);
+        for (const bg of ['light', 'dark']) {
+          await js(`document.querySelector('#bgSeg [data-v=${bg}]').click()`);
+          for (const t of Presets.TYPES) {
+            await js(`window.__vs.setLayers([VSPresets.layer('${t.id}',{seed:4242,opacity:Math.min(1,VSPresets.layer('${t.id}').opacity*1.6)})])`);
+            const f0 = await js('window.__vs.frames');
+            for (let k = 0; k < 60 && (await js('window.__vs.frames')) < f0 + 3; k++) await wait(100);
+            await wait(300);
+            await shot(`type-${String(Presets.TYPE_INDEX[t.id]).padStart(2, '0')}-${t.id}-${bg}`, rect);
           }
         }
       }
+      await js(`window.__vs.setLayers(VSPresets.presetLayers('full'))`);
+      await js(`(()=>{const s=window.__vs.S; s.theme='dark'; window.__vs.renderAll();})()`);
+      await wait(2000); await shot('panel-dark');
+      log('theme ' + await js(`document.documentElement.dataset.theme + ' bg=' + getComputedStyle(document.body).backgroundColor`));
+      log('dom ' + await js(`JSON.stringify({layers: document.querySelectorAll('#layerList .layer').length, groups: [...document.querySelectorAll('.group-head')].map(x=>x.textContent)})`));
+      log('shader ' + await js(`(()=>{const r=new NoiseRenderer(document.createElement('canvas')); r._use(VSPresets.TYPES.map((_,i)=>i)); return NoiseRenderer.caseCount()+' cases, all-types program compiled in '+r.compileMs.toFixed(0)+' ms';})()`));
       log('settings file ' + settingsPath + ' exists=' + fs.existsSync(settingsPath));
       log('done');
     } catch (e) { log('ERROR ' + e.stack); }
     quitting = true; app.quit();
-  }, 4000);
+  }, 6000);
 }
 
 // ---------- lifecycle ----------
@@ -274,6 +316,7 @@ else {
   app.on('second-instance', showPanel);
   app.whenReady().then(() => {
     loadSettings();
+    applyTheme();
     if (isMac && app.dock) app.dock.hide();
     makeTray();
     registerHotkeys();
@@ -290,7 +333,7 @@ else {
     screen.on('display-removed', rebuildOverlays);
     screen.on('display-metrics-changed', rebuildOverlays);
   });
-  app.on('window-all-closed', (e) => { /* keep running in tray */ });
+  app.on('window-all-closed', () => { /* keep running in tray */ });
   app.on('before-quit', () => { quitting = true; globalShortcut.unregisterAll(); });
   app.on('activate', showPanel);
 }

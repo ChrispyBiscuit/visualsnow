@@ -27,7 +27,7 @@ const targets = [
       overwrite: true,
       asar: true,
       prune: true,
-      ignore: [/^\/dist/, /^\/scripts/, /^\/PRD\.md/, /^\/\.git/, /^\/node_modules\/\.cache/],
+      ignore: [/^\/dist/, /^\/scripts/, /^\/PRD.*\.md/, /^\/\.git/, /^\/\.github/, /^\/node_modules\/\.cache/],
       appCopyright: 'Apache-2.0',
       appBundleId: 'app.visualsnow.reliefkit',
       appCategoryType: 'public.app-category.utilities',
@@ -37,6 +37,7 @@ const targets = [
     for (const p of paths) {
       // drop README and launcher into the folder
       fs.copyFileSync(path.join(root, 'README.md'), path.join(p, 'README.md'));
+      fs.copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(p, 'THIRD_PARTY_NOTICES.md'));
       if (t.platform === 'linux') fs.writeFileSync(path.join(p, 'run.sh'), '#!/bin/sh\ncd "$(dirname "$0")" && "./Visual Snow Relief Kit" "$@"\n', { mode: 0o755 });
       const zip = path.join(out, `VisualSnowReliefKit-${t.platform === 'win32' ? 'windows' : t.platform === 'darwin' ? 'macos' : 'linux'}-${t.arch}.zip`);
       if (fs.existsSync(zip)) fs.unlinkSync(zip);

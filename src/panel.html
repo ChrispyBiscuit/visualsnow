@@ -2,123 +2,177 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Visual Snow Relief Kit — Control Panel</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'">
+<title>Visual Snow Relief Kit</title>
 <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-<header>
+<header class="topbar">
   <div class="brand">
-    <span class="logo"></span>
-    <div>
-      <h1>Visual Snow Relief Kit</h1>
-      <div class="sub" id="status">—</div>
-    </div>
+    <span class="logo" aria-hidden="true"></span>
+    <span class="brand-name">Visual Snow Relief Kit</span>
   </div>
-  <div class="head-actions">
-    <label class="switch big"><input type="checkbox" id="enabled"><span></span><b>Overlay</b></label>
-    <button id="hide" class="ghost" title="Hide to tray">Hide</button>
-    <button id="quit" class="ghost danger">Quit</button>
-  </div>
+  <button class="preset-btn" id="presetBtn" title="Presets">
+    <span class="preset-label">Preset</span>
+    <span class="preset-name" id="presetName">—</span>
+    <span data-icon="chevron-down"></span>
+  </button>
+  <div class="spacer"></div>
+  <label class="master" title="Overlay on or off">
+    <span class="master-label" id="masterLabel">Overlay on</span>
+    <span class="switch lg"><input type="checkbox" id="enabled"><span class="track"></span></span>
+  </label>
+  <button class="icon-btn" id="settingsBtn" title="Settings"><span data-icon="settings-2"></span></button>
 </header>
 
-<main>
-  <section class="col left">
-    <div class="card">
-      <div class="card-head"><h2>Preset</h2></div>
-      <div class="row">
-        <select id="preset"></select>
-        <button id="savePreset" title="Save current layers as a user preset">Save as…</button>
-      </div>
-      <div class="row small">
-        <button id="export" class="ghost">Export JSON</button>
-        <button id="import" class="ghost">Import JSON</button>
-        <button id="deletePreset" class="ghost danger" hidden>Delete preset</button>
-      </div>
+<main class="workspace">
+  <aside class="pane layers-pane">
+    <div class="pane-head">
+      <span class="eyebrow">Layers</span>
+      <span class="count" id="layerCount"></span>
     </div>
-
-    <div class="card">
-      <div class="card-head"><h2>Layers</h2><span class="hint" id="layerCount"></span></div>
-      <ul id="layers"></ul>
-      <div class="row">
-        <select id="addType"></select>
-        <button id="add">Add layer</button>
-      </div>
+    <ul class="layer-list" id="layerList"></ul>
+    <div class="pane-foot">
+      <button class="btn block" id="addLayer"><span data-icon="plus"></span>Add layer</button>
     </div>
+  </aside>
 
-    <div class="card">
-      <div class="card-head"><h2>Preview</h2>
-        <div class="seg" id="bgSeg">
-          <button data-bg="light" class="on">Light</button>
-          <button data-bg="dark">Dark</button>
-          <button data-bg="scene">Scene</button>
+  <section class="stage">
+    <div class="preview bg-light" id="preview">
+      <div class="scene" aria-hidden="true">
+        <div class="win">
+          <div class="win-bar"><i></i><i></i><i></i></div>
+          <div class="win-body">
+            <h4>Reading test</h4>
+            <p>The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump.</p>
+            <p class="muted">0123456789 · Sphinx of black quartz, judge my vow.</p>
+          </div>
         </div>
+        <div class="sky"></div>
       </div>
-      <div class="preview bg-light" id="preview">
-        <div class="scene"><div class="sky"></div><div class="text">The quick brown fox jumps over the lazy dog. 0123456789</div></div>
-        <canvas id="pv"></canvas>
+      <img class="photo" id="photo" alt="">
+      <canvas id="pv"></canvas>
+      <div class="hud" id="hud"></div>
+    </div>
+    <div class="stage-bar">
+      <div class="seg" id="bgSeg" role="radiogroup" aria-label="Preview background">
+        <button data-v="light" class="on"><span data-icon="sun"></span>Light</button>
+        <button data-v="dark"><span data-icon="moon"></span>Dark</button>
+        <button data-v="scene"><span data-icon="monitor"></span>Scene</button>
+        <button data-v="photo"><span data-icon="image"></span>Photo</button>
       </div>
-      <div class="hint">The preview uses the same renderer as the overlay. Dot sizes are in device pixels, so what you see here is what you get on screen.</div>
+      <input type="file" id="photoInput" accept="image/*" hidden>
+      <div class="seg" id="zoomSeg" role="radiogroup" aria-label="Zoom">
+        <button data-v="1" class="on" title="One preview pixel is one screen pixel">1:1</button>
+        <button data-v="2">2×</button>
+        <button data-v="4">4×</button>
+      </div>
+      <div class="spacer"></div>
+      <div class="strength" id="strength"></div>
     </div>
   </section>
 
-  <section class="col right">
-    <div class="card" id="layerCard">
-      <div class="card-head">
-        <input id="lname" class="name" placeholder="Layer name">
-        <select id="ltype"></select>
+  <aside class="pane inspector" id="inspector">
+    <div class="empty" id="inspEmpty">
+      <span data-icon="layers-2"></span>
+      <p>No layer selected.</p>
+      <button class="btn" id="emptyAdd"><span data-icon="plus"></span>Add layer</button>
+    </div>
+    <div id="inspBody" hidden>
+      <div class="insp-head">
+        <input id="lname" class="name-input" spellcheck="false" aria-label="Layer name">
+        <button class="type-chip" id="typeBtn" title="Change type"></button>
+        <p class="type-look" id="typeLook"></p>
       </div>
-      <p class="desc" id="ldesc"></p>
-      <div id="controls"></div>
-      <div class="row small">
-        <button id="reseed" class="ghost">New seed</button>
-        <button id="dup" class="ghost">Duplicate</button>
-        <button id="del" class="ghost danger">Remove layer</button>
+      <div class="groups" id="groups"></div>
+      <div class="insp-foot">
+        <button class="btn ghost sm" id="reseed" title="New random pattern"><span data-icon="shuffle"></span>New seed</button>
+        <button class="btn ghost sm" id="dup"><span data-icon="copy"></span>Duplicate</button>
+        <div class="spacer"></div>
+        <button class="btn ghost sm danger" id="del"><span data-icon="trash-2"></span>Remove</button>
       </div>
     </div>
-
-    <div class="card">
-      <div class="card-head"><h2>General</h2></div>
-      <div class="grid2">
-        <label>Global opacity <output id="gopOut"></output><input type="range" id="gop" min="0" max="1" step="0.01"></label>
-        <label>FPS cap <output id="fpsOut"></output><input type="range" id="fps" min="5" max="144" step="1"></label>
-      </div>
-      <h3>Displays</h3>
-      <div id="displays" class="chips"></div>
-      <h3>Hotkeys</h3>
-      <div class="grid2">
-        <label>Toggle overlay <input id="hkToggle" class="text"></label>
-        <label>Open panel <input id="hkPanel" class="text"></label>
-      </div>
-      <div class="hint">Electron accelerator format, for example <code>CommandOrControl+Alt+V</code>. Changes apply when you leave the field.</div>
-      <label class="switch"><input type="checkbox" id="login"><span></span>Start at login (Windows and macOS)</label>
-      <label class="switch"><input type="checkbox" id="keepTop"><span></span>Keep on top: re-assert every second (fixes the overlay dropping behind other windows)</label>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><h2>Calibration</h2></div>
-      <div class="grid2">
-        <label>Screen diagonal (inches) <input type="number" id="diag" class="text" min="5" max="100" step="0.1"></label>
-        <label>Viewing distance (cm) <input type="number" id="dist" class="text" min="20" max="300" step="1"></label>
-      </div>
-      <div class="hint" id="calib"></div>
-    </div>
-
-    <div class="card about">
-      <div class="card-head"><h2>About</h2></div>
-      <div class="hint" id="about"></div>
-      <div class="hint">Research defaults: dots under 2 arcmin, about 18 Hz, about 3 percent density, low contrast. Black-and-white is the most common type, then transparent, flashing and coloured.</div>
-    </div>
-  </section>
+  </aside>
 </main>
 
-<div id="toast"></div>
-<dialog id="nameDlg">
-  <form method="dialog">
-    <h2>Preset name</h2>
-    <input id="nameInput" class="text" autofocus maxlength="60">
-    <div class="row"><button value="cancel" class="ghost" type="submit">Cancel</button><button value="ok" class="primary" type="submit" id="nameOk">Save</button></div>
+<!-- Type gallery -->
+<dialog class="modal wide" id="typeDlg">
+  <div class="modal-head">
+    <h2 id="typeDlgTitle" tabindex="-1" autofocus>Add a layer</h2>
+    <button class="icon-btn" data-close><span data-icon="x"></span></button>
+  </div>
+  <div class="tabs" id="familyTabs"></div>
+  <div class="gallery" id="typeGallery"></div>
+</dialog>
+
+<!-- Preset gallery -->
+<dialog class="modal wide" id="presetDlg">
+  <div class="modal-head">
+    <h2 tabindex="-1" autofocus>Presets</h2>
+    <div class="head-actions">
+      <button class="btn sm" id="savePreset"><span data-icon="save"></span>Save current</button>
+      <button class="btn ghost sm" id="importPreset"><span data-icon="upload"></span>Import</button>
+      <button class="btn ghost sm" id="exportPreset"><span data-icon="download"></span>Export</button>
+      <button class="icon-btn" data-close><span data-icon="x"></span></button>
+    </div>
+  </div>
+  <div class="gallery-scroll" id="presetGallery"></div>
+</dialog>
+
+<!-- Settings -->
+<dialog class="modal settings" id="settingsDlg">
+  <div class="modal-head">
+    <h2 tabindex="-1" autofocus>Settings</h2>
+    <button class="icon-btn" data-close><span data-icon="x"></span></button>
+  </div>
+  <div class="settings-body">
+    <nav class="settings-nav" id="settingsNav">
+      <button data-tab="general" class="on"><span data-icon="settings-2"></span>General</button>
+      <button data-tab="displays"><span data-icon="monitor"></span>Displays</button>
+      <button data-tab="hotkeys"><span data-icon="keyboard"></span>Hotkeys</button>
+      <button data-tab="calibration"><span data-icon="ruler"></span>Calibration</button>
+      <button data-tab="safety"><span data-icon="shield-alert"></span>Safety</button>
+      <button data-tab="about"><span data-icon="info"></span>About</button>
+    </nav>
+    <div class="settings-content" id="settingsContent"></div>
+  </div>
+</dialog>
+
+<!-- First run -->
+<dialog class="modal narrow" id="firstRunDlg">
+  <div class="first-run">
+    <span class="logo xl" aria-hidden="true"></span>
+    <h2 tabindex="-1" autofocus>Visual Snow Relief Kit</h2>
+    <p>Draws visual snow, grain and static over your whole screen. Clicks pass through it. Build your snow from layers, or start from a preset.</p>
+    <div class="keys">
+      <div><kbd id="frToggle"></kbd><span>Overlay on or off</span></div>
+      <div><kbd id="frPanel"></kbd><span>Open this window</span></div>
+    </div>
+    <div class="callout warn">
+      <span data-icon="shield-alert"></span>
+      <p>Flicker can trigger migraine and, rarely, seizures. Start with low opacity. If you have photosensitive epilepsy, do not use this app. This is not medical advice.</p>
+    </div>
+    <button class="btn primary block" id="frStart">Start</button>
+  </div>
+</dialog>
+
+<!-- Generic confirm / prompt -->
+<dialog class="modal narrow" id="askDlg">
+  <form method="dialog" class="ask">
+    <h2 id="askTitle"></h2>
+    <p id="askBody"></p>
+    <input id="askInput" class="field" hidden maxlength="60" spellcheck="false">
+    <div class="ask-actions">
+      <button value="cancel" class="btn ghost" formnovalidate>Cancel</button>
+      <button value="ok" class="btn primary" id="askOk">OK</button>
+    </div>
   </form>
 </dialog>
+
+<div class="ctx" id="ctx" hidden></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="assets/icons.js"></script>
 <script src="presets.js"></script>
 <script src="noise.js"></script>
 <script src="panel.js"></script>

@@ -1,6 +1,6 @@
 # Visual Snow Relief Kit
 
-A free, open source desktop overlay that draws visual snow, grain and static over your whole screen. Always on top, click-through, on every display. Ten noise types, up to eight stacked layers, defaults taken from published visual snow research, a live control panel, tray icon and hotkeys.
+A free, open source desktop overlay that draws visual snow, grain and static over your whole screen. Always on top, click-through, on every display. 37 noise types in six families, up to eight stacked layers, 28 presets, defaults taken from published visual snow research, a live control panel, tray icon and hotkeys.
 
 Windows, macOS and Linux. No installer. Unzip and run. Apache 2.0 licence.
 
@@ -26,20 +26,25 @@ The defaults are not guesses. They come from studies that asked people with visu
 | Density | About 2.9 percent of the field is a dot at any instant. | 3 percent |
 | Contrast | Very low, about 2.6 percent RMS. | Opacity 45 percent on 1 px dots, which lands near that after display blending. |
 | Colour | Black-and-white most common (58 to 65 percent of patients), then transparent (41 to 54), flashing (44 to 50), coloured (23 to 40). Many report more than one. | Dark and light dots mixed. Other types are separate layers and presets. |
-| Related percepts | Floaters and small moving objects against bright backgrounds, afterimages and trailing, coloured swirls with eyes closed. | Floaters, Sparkle and Fog layers. |
+| Related percepts | Floaters and small moving objects against bright backgrounds, afterimages and trailing, coloured swirls with eyes closed. | Floaters, Squiggles, Phosphenes, Marbled swirl and Sparkle layers. |
+| Distribution | Many describe snow as an even texture. Some report it denser at the edges of vision or coming in waves. | Even snow, Patchy snow and Bursts types. Edge masks. Slow modulation. |
 | Visibility | Worse in dim rooms and on dark, plain backgrounds. | The Dim room preset. |
 
 Sources: a 2024 matching study of 31 people with VSS (University of Minnesota); the University of Melbourne visual snow research programme; Viana et al. 2020, European Journal of Neurology; Puledda, Schankin and Goadsby 2020, Neurology; Schankin et al. 2014, Brain; Lauschke et al. 2016. Links are in `PRD.md`.
 
 ## Design method
 
-**One shader, many layers.** Every noise type is a branch in a single WebGL 2 fragment shader. Up to eight layers are drawn in one pass, composited front to back with premultiplied alpha. There are no textures, no particles and no CPU work per frame. A full 4K display costs one fullscreen draw.
+**One pass, many layers.** Up to eight layers are drawn in one fullscreen WebGL 2 pass, composited with premultiplied alpha. There are no textures, no stored particles and no CPU work per frame.
+
+**Shaders built to order.** Every type is written as one case of a shader switch. The renderer compiles a program that holds only the types you are using, and caches it. A snow-only stack runs a snow-only shader. This keeps the cost per pixel flat as the catalog grows, and it matters most without a GPU: on software rendering, in virtual machines and remote desktops, a shader holding all 37 types takes seconds to compile and runs every branch for every pixel.
 
 **Hash noise, not random numbers.** Every dot is a pure function of its cell, its frame number and a seed, computed with a PCG integer hash. The same settings give the same picture on every machine, every display and in the preview. Two displays never show the same pattern because each layer has a seed.
 
 **Exact update rates.** Research reports snow in hertz, so the app works in hertz. A layer's frame number is `floor(time × rate)`. An 18 Hz layer changes 18 times a second whatever the monitor refresh is. The renderer checks whether any layer's frame number changed and skips the draw if not. A pure snow stack at 18 Hz draws 18 frames a second, not 60 or 144.
 
-**Asynchronous cells.** Real snow does not refresh in lockstep. Snow, shimmer, chroma and sparkle layers give each cell its own phase offset, so dots appear and vanish on their own clocks. TV static keeps the lockstep refresh, because that is what static looks like.
+**Asynchronous cells.** Real snow does not refresh in lockstep. Dot layers give each cell its own phase offset, so dots appear and vanish on their own clocks. The renderer draws three times per layer period for these, so the rolling change is visible. TV static keeps the lockstep refresh, because that is what static looks like.
+
+**Moving things without storing them.** Floaters, squiggles, ripples, phosphenes, bokeh and flow particles are computed per pixel from a region id and the time, never stored. A floater's position is smooth noise of time. A flow particle is traced along an analytic curl field from its spawn point. Nothing accumulates, so nothing drifts or leaks over a long session.
 
 **Device pixels, converted to angle.** Grain size is in device pixels because that is what the GPU draws. Visual angle is what the research measures. The Calibration card does the conversion from your screen diagonal and viewing distance, so a 1 px dot on a 4K 27 inch display and a 2 px dot on a 1080p 27 inch display read as the same thing.
 
@@ -105,6 +110,15 @@ npm install
 npm start
 ```
 
+## The control panel
+
+- **Layers** on the left. Drag to reorder, click the eye to hide, right-click for rename, duplicate, change type and remove.
+- **Preview** in the centre, on a light, dark, desktop-scene or your own photo background. 1:1 shows real device pixels. 2× and 4× zoom in to inspect dots.
+- **Inspector** on the right, in collapsible groups: Look, Timing, the type's own pattern settings, Colour, Motion, Mask, Modulation and Schedule. Click a value to type it. Arrow keys step, Shift steps ten times. Double-click a label or slider to reset. A small tick marks each default.
+- **Presets** open as a gallery with live thumbnails. Save your own, import and export them as JSON.
+- **Settings** hold theme, frame-rate cap, keep-on-top, start at login, displays, hotkeys (press the keys to record), calibration, safety and about.
+- Light and dark themes follow your system, or pick one.
+
 ## Hotkeys
 
 - `Ctrl+Alt+V` (`Cmd+Alt+V` on macOS): overlay on or off
@@ -114,24 +128,43 @@ Both can be changed in the panel.
 
 ## Noise types
 
-| Type | Look | Starting values |
-|---|---|---|
-| Snow (clinical) | Sparse tiny dots, dark and light | 1 px, 18 Hz, 3 %, opacity 45 % |
-| TV static | Dense grey noise | 1 px, 30 Hz, contrast 90 %, opacity 20 % |
-| Film grain | Dense soft grain, bell-shaped | 2 px, 24 Hz, contrast 70 %, opacity 25 % |
-| Colour chroma | Random saturated colour dots | 1 px, 15 Hz, 2 % |
-| Transparent shimmer | Faint mid-grey dots | 2 px, 14 Hz, 8 %, opacity 18 % |
-| Flashing sparkles | Rare bright dots that pop and fade | 3 px, 2 Hz, 0.4 % |
-| Floaters | Soft blobs that wander | 6 px, 0.4 Hz, 15 % |
-| Fog swirl | Large slow clouds | 300 px, 0.15 Hz |
-| Scanlines | Flickering horizontal lines | 3 px, 60 Hz |
-| Pulse | Whole-screen slow brightening | 0.8 Hz, opacity 5 % |
+37 types in six families. Each has its own defaults and, where it needs them, its own pattern settings.
 
-Each layer also has tint colour, tint amount, softness, drift and seed.
+| Family | Types |
+|---|---|
+| **Dots**, the visual snow core | Snow · Even snow (no clumps) · Fixed shimmer (dots stay put and twinkle) · Pulsing dots · Patchy snow · Falling snow · Bursts · Colour dots · Transparent · Flashing sparkles |
+| **Grain & static** | TV static · Film grain (mono or colour) · Fine blue-noise grain · Halftone · Ordered dither · Dust & scratches · VHS tracking · Interlace |
+| **Fields** | Fog · Marbled swirl · Cells (bubbles or mesh) · Ripples · Interference (moiré) · Plasma |
+| **Floaters & shapes** | Floaters · Squiggles (worm-like vitreous floaters) · Phosphenes · Flow particles · Bokeh |
+| **Flicker** | Pulse · Flicker · Breathing vignette · Strobe |
+| **Lines & structure** | Scanlines · Grid (square or hex) · Rain streaks · Checker flicker |
+
+Every layer, whatever its type, also has:
+
+| Feature | What it does |
+|---|---|
+| Tint | Colour and amount. |
+| Show | All, lights only, or darks only. Lights only shows on dark parts of the screen, darks only on light parts. |
+| Drift | Constant motion in pixels per second. |
+| Mask | Full screen, centre, edges, left, right, top or bottom, with size and feather. Use Edges for snow that is worse in peripheral vision, or Centre-clear to keep a reading area clean. |
+| Modulation | Slowly raises and lowers opacity, density or rate over a cycle of 5 seconds to 15 minutes. |
+| Schedule | Shows the layer only between two times of day. |
+| Refresh lock | Snaps the rate to an even divisor of your display refresh, which removes beating. |
+| Seed | A new random pattern with the same settings. |
+
+## Presets
+
+| Group | Presets |
+|---|---|
+| Clinical | Clinical match · Clinical, even texture · Clinical, strong · Worse at the edges |
+| Reported variants | Black and white · Transparent · Flashing · Coloured · Screen door · Waves of static · Bright sky · Eyes closed · Dim room · Full syndrome |
+| Analog media | Cine film · Old CRT · VHS tape · Newsprint · 1-bit dither |
+| Ambient & calm | Soft grain · Snowfall · Drift · Night lights |
+| Demo & extreme | Dead channel · Big pixel mosaic · Moiré · Plasma · Storm |
 
 ## Settings file
 
-Portable mode: if the folder the app runs from is writable, settings are saved there as `visual-snow-settings.json`. Otherwise they go to the user profile. The panel shows the path. Export and Import move layer sets between machines as JSON.
+Portable mode: if the folder the app runs from is writable, settings are saved there as `visual-snow-settings.json`. Otherwise they go to the user profile. Settings, About shows the path. Export and Import move layer sets between machines as JSON. Settings and presets from 1.x are upgraded automatically on first start.
 
 ## Build from source
 
@@ -153,7 +186,17 @@ Needs Node 18 or newer and `zip` on the PATH. Builds for every platform from any
 
 ## Safety
 
-Flicker can trigger migraine or, rarely, seizures in people who are sensitive to it. Start with low opacity. The Pulse and Sparkle types and high-contrast static at 10 to 30 Hz are the ones to be careful with. If you have photosensitive epilepsy, do not use this app. Nothing here is medical advice.
+Flicker can trigger migraine or, rarely, seizures in people who are sensitive to it. Start with low opacity. If you have photosensitive epilepsy, do not use this app. Nothing here is medical advice.
+
+- The whole-screen types, Pulse, Flicker and Strobe, are held to 3 flashes a second, the level accessibility guidelines (WCAG 2.3.1) warn about. Flicker may go faster only at 10 % depth or less. The cap includes rate modulation.
+- The cap can be lifted in Settings, Safety, after a warning.
+- Adding a Strobe layer asks first. No built-in preset uses Strobe.
+- Thumbnails of flicker types are drawn still.
+- Dot types are not capped. Research snow is 18 Hz over 3 % of the field, far below the area that counts as a flash.
+
+## Third-party
+
+Inter font (SIL Open Font License 1.1) and Lucide icons (ISC licence) are bundled. See `THIRD_PARTY_NOTICES.md`.
 
 ## Author
 

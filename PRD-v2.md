@@ -1,6 +1,15 @@
 # Visual Snow Relief Kit 2.0 — Product Requirements Document
 
-Version 2.0 draft · 2026-10-26 · supersedes the noise and panel sections of `PRD.md`
+Version 2.0 · 2026-10-26 · supersedes the noise and panel sections of `PRD.md`
+
+**Status: built and released as 2.0.0.** Differences from this draft:
+
+- 37 types, not 36. The three 1.x dot types this draft did not list (Colour dots, Transparent, Flashing sparkles) were kept in the Dots family.
+- 28 built-in presets.
+- The single-shader risk in section 4 came true on software rendering: the 37-type program compiles in about 1.6 s there and runs every branch per pixel. The renderer now compiles one small program per set of types in use and caches it. Gallery thumbnails are drawn a few per frame, only while visible.
+- The preview's 1:1 toggle became a 1:1, 2×, 4× zoom control. 1:1 is the default.
+- Inspector groups are Look, Timing, the type's own pattern group, Colour, Motion, Mask, Modulation and Schedule.
+- Blend modes are named Show: All, Lights, Darks.
 
 ## 1. Why 2.0
 
