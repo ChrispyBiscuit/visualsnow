@@ -259,7 +259,7 @@
   function renderStatus() {
     if (!pv) return;
     const n = pv.layers.length;
-    $('roRight').replaceChildren(roItem('Layers', String(n)), roItem('Frames', pv.fps + ' /s'), h('span', { class: 'cap ' + (S.enabled ? 'accent' : 'faint'), text: S.enabled ? 'Overlay on' : 'Overlay off' }));
+    $('roRight').replaceChildren(...[roItem('Layers', String(n)), window.__vsHideFps ? null : roItem('Frames', pv.fps + ' /s'), h('span', { class: 'cap ' + (S.enabled ? 'accent' : 'faint'), text: S.enabled ? 'Overlay on' : 'Overlay off' })].filter(Boolean));
   }
   setInterval(renderStatus, 500);
 
@@ -805,7 +805,10 @@
   // test hook used by the smoke test
   window.__vs = {
     openTypes, openPresets, openSettings, renderAll, get S() { return S; }, get frames() { return pv ? pv.frames || 0 : 0; },
-    setLayers: (ls) => { S.layers = ls; sel = ls[0] ? ls[0].id : null; renderAll(); push(); },
-    setAdvanced: (on) => { $('advToggle').checked = on; $('advToggle').dispatchEvent(new Event('change')); }
+    setLayers: (ls) => { S.layers = ls; sel = ls[0] ? ls[0].id : null; S.preset = 'custom'; renderAll(); push(); },
+    setAdvanced: (on) => { $('advToggle').checked = on; $('advToggle').dispatchEvent(new Event('change')); },
+    setPreset: (id) => { const p = presetList().find((x) => x.id === id); if (p) applyPreset(p.id, p.make()); },
+    thumbsPending: () => thumbJobs.filter((j) => j.at < 0 && j.canvas.getBoundingClientRect().height > 0 && j.canvas.getBoundingClientRect().top < innerHeight).length,
+    setBg, setZoom, renderStatus, select: (i) => { sel = S.layers[i] ? S.layers[i].id : sel; renderAllLayerViews(); }
   };
 })();

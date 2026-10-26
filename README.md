@@ -6,7 +6,9 @@ Windows, macOS and Linux. No installer. Unzip and run. Apache 2.0 licence.
 
 **Download:** see the [Releases](../../releases) page.
 
-![The control panel](docs/panel.png)
+![The control panel](docs/images/panel.png)
+
+**Feature overview with screenshots of every screen, type and preset:** [docs/FEATURES.md](docs/FEATURES.md)
 
 ---
 
@@ -122,7 +124,7 @@ The panel uses a studio-hardware look: a dark matte faceplate, raised plates, a 
 - **Layer plate.** Layer type, dot polarity and Show (all, lights, darks) along the top. Four large dials for the main settings, then small dials for the type's own settings.
 - **Advanced plate**, switched on in the layer plate. Tint colour, mask area, vary over time and schedule along the top, and dials for tint, drift, mask and variation below.
 
-![The Advanced plate](docs/panel-advanced.png)
+![The Advanced plate](docs/images/panel-advanced.png)
 
 Dials: drag up or down, hold Shift for fine control, scroll, or use the arrow keys (Shift for bigger steps, Home and End for the limits). Double-click a dial or its label to reset it. Click the value to type one.
 

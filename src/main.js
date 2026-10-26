@@ -308,6 +308,84 @@ function smokeTest() {
   }, 6000);
 }
 
+// ---------- documentation screenshots (VS_DOCS=<outdir>) ----------
+// Captures every screen, every noise type and every preset for docs/FEATURES.md.
+function docShots() {
+  const out = process.env.VS_DOCS;
+  const img = path.join(out, 'images');
+  for (const d of ['', 'types', 'presets']) fs.mkdirSync(path.join(img, d), { recursive: true });
+  const log = (m) => { console.log('[docs]', m); try { fs.appendFileSync(path.join(out, 'docs-log.txt'), m + '\n'); } catch (_) {} };
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  setTimeout(async () => {
+    try {
+      const js = (code) => panel.webContents.executeJavaScript(code);
+      const shot = async (file, rect) => { fs.writeFileSync(path.join(img, file), (await panel.webContents.capturePage(rect)).toPNG()); log('wrote ' + file); };
+      const settle = async (n = 3) => {
+        const f0 = await js('window.__vs.frames');
+        for (let k = 0; k < 120 && (await js('window.__vs.frames')) < f0 + n; k++) await wait(100);
+        await js('window.__vs.renderStatus()'); await wait(1500);
+      };
+      const thumbs = async () => { for (let k = 0; k < 400 && (await js('window.__vs.thumbsPending()')) > 0; k++) await wait(250); await wait(900); };
+      const rectOf = (sel) => js(`(()=>{const r=document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect();return {x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height)};})()`);
+      await js('window.__vsHideFps = true');
+      await wait(3000); await shot('first-run.png');
+      await js(`document.getElementById('frStart').click()`); await wait(500);
+
+      const scene = async (preset, bg, file, extra) => {
+        await js(`(()=>{window.__vs.setAdvanced(false); window.__vs.setZoom(1); window.__vs.setPreset('${preset}'); window.__vs.setBg('${bg}'); ${extra || ''}})()`);
+        await settle(); await shot(file);
+      };
+      await scene('full', 'dark', 'panel.png');
+      await scene('clinical', 'scene', 'panel-scene.png');
+      await scene('film', 'light', 'panel-light.png');
+      await scene('eyes-closed', 'dark', 'panel-eyes-closed.png');
+      await js(`(()=>{window.__vs.setLayers([VSPresets.layer('snow',{name:'Peripheral snow',density:0.06,opacity:0.6,mask:{shape:2,size:0.45,feather:0.6},mod:{target:2,depth:0.6,period:45},color:[0.85,0.8,1],colorMix:0.4})]); window.__vs.setBg('scene'); window.__vs.setAdvanced(true);})()`);
+      await settle(); await shot('panel-advanced.png');
+      await js(`(()=>{window.__vs.setAdvanced(false); window.__vs.setPreset('clinical'); window.__vs.setBg('dark'); window.__vs.setZoom(4);})()`);
+      await settle(); await shot('zoom-4x.png', await rectOf('#display'));
+      await js('window.__vs.setZoom(1)');
+
+      await js(`window.__vs.setPreset('full')`); await settle();
+      await js(`(()=>{const li=document.querySelector('.lrow'); const r=li.getBoundingClientRect(); li.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:r.x+120,clientY:r.y+30}));})()`);
+      await wait(2500); log('menu hidden=' + await js(`document.getElementById('ctx').hidden`)); await shot('layer-menu.png');
+      await js(`document.getElementById('ctx').hidden = true`);
+
+      await js(`window.__vs.openTypes('add')`); await thumbs(); await shot('gallery-types.png');
+      const fams = await js('VSPresets.FAMILIES.map(f=>f.id)');
+      for (let i = 0; i < fams.length; i++) {
+        await js(`document.querySelectorAll('#familyTabs button')[${i + 1}].click()`); await thumbs(); await shot(`gallery-${fams[i]}.png`);
+      }
+      await js(`document.querySelectorAll('#familyTabs button')[0].click(); document.getElementById('typeDlg').close()`);
+      await js(`window.__vs.openPresets()`); await thumbs(); await shot('gallery-presets.png');
+      await js(`document.getElementById('presetDlg').close()`);
+      for (const tab of ['general', 'displays', 'hotkeys', 'calibration', 'safety', 'about']) {
+        await js(`window.__vs.openSettings('${tab}')`); await wait(2000); await shot(`settings-${tab}.png`);
+      }
+      await js(`document.getElementById('settingsDlg').close()`);
+
+      // Every type and preset on a split background: dark on the left, light on the right.
+      await js(`(()=>{window.__vs.setBg('dark'); const p=document.getElementById('preview'); p.style.background='linear-gradient(90deg,#08090a 0 50%,#f4f3ef 50% 100%)';})()`);
+      const prev = await rectOf('#preview');
+      const types = await js('VSPresets.TYPES.map(t=>t.id)');
+      for (let i = 0; i < types.length; i++) {
+        await js(`window.__vs.setLayers([VSPresets.layer('${types[i]}',{seed:4242,opacity:Math.min(1,VSPresets.layer('${types[i]}').opacity*1.5)})])`);
+        await settle(); await shot(`types/${String(i).padStart(2, '0')}-${types[i]}.png`, prev);
+      }
+      const presets = await js('VSPresets.BUILTIN.map(b=>b.id)');
+      for (const id of presets) { await js(`window.__vs.setPreset('${id}')`); await settle(); await shot(`presets/${id}.png`, prev); }
+      await js(`document.getElementById('preview').style.background=''`);
+      fs.writeFileSync(path.join(out, 'manifest.json'), JSON.stringify({
+        families: Presets.FAMILIES.map((f) => ({ id: f.id, name: f.name, desc: f.desc })),
+        types: Presets.TYPES.map((t, i) => ({ i, id: t.id, name: t.name, family: t.family, look: t.look, flash: !!t.flash })),
+        groups: Presets.PRESET_GROUPS,
+        presets: Presets.BUILTIN.map((b) => ({ id: b.id, group: b.group, name: b.name, desc: b.desc, layers: b.make().map((l) => Presets.BY_ID[l.type].name) }))
+      }, null, 2));
+      log('done');
+    } catch (e) { log('ERROR ' + e.stack); }
+    quitting = true; app.quit();
+  }, 6000);
+}
+
 // ---------- lifecycle ----------
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) { app.quit(); }
@@ -328,6 +406,7 @@ else {
     // Linux transparency needs a short delay after ready.
     if (isLinux) setTimeout(start, 400); else start();
     if (process.env.VS_SMOKE) smokeTest();
+    if (process.env.VS_DOCS) docShots();
     screen.on('display-added', rebuildOverlays);
     screen.on('display-removed', rebuildOverlays);
     screen.on('display-metrics-changed', rebuildOverlays);
