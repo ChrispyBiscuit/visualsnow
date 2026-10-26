@@ -146,15 +146,14 @@ function broadcast() {
 function setEnabled(on) { settings.enabled = !!on; saveSettings(); broadcast(); }
 
 // ---------- panel ----------
-function applyTheme() {
-  nativeTheme.themeSource = ['light', 'dark'].includes(settings.theme) ? settings.theme : 'system';
-}
+// The panel has one look, dark. Keep native menus and dialogs dark to match.
+function applyTheme() { nativeTheme.themeSource = 'dark'; }
 function showPanel() {
   if (panel && !panel.isDestroyed()) { panel.show(); panel.focus(); return; }
   panel = new BrowserWindow({
-    width: 1240, height: 800, minWidth: 960, minHeight: 640,
+    width: 1280, height: 880, minWidth: 1080, minHeight: 720,
     title: 'Visual Snow Relief Kit',
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0d0e11' : '#f3f4f6',
+    backgroundColor: '#121315',
     icon: makeIcon(128),
     autoHideMenuBar: true,
     show: false,
@@ -231,7 +230,6 @@ ipcMain.on('settings:set', (_e, s) => {
   saveSettings();
   if (JSON.stringify(settings.hotkeys) !== JSON.stringify(prev.hotkeys)) registerHotkeys();
   if (settings.launchAtLogin !== prev.launchAtLogin) applyLoginItem();
-  if (settings.theme !== prev.theme) applyTheme();
   keepOnTop();
   sendOverlays();
   updateTray();
@@ -280,9 +278,10 @@ function smokeTest() {
       await js(`document.getElementById('presetDlg').close()`);
       for (const tab of ['general', 'hotkeys', 'calibration', 'safety', 'about']) { await js(`window.__vs.openSettings('${tab}')`); await wait(300); await shot('settings-' + tab); }
       await js(`document.getElementById('settingsDlg').close()`);
-      // one layer with every group in use
-      await js(`(()=>{const L=VSPresets.layer('patchy',{mask:{shape:2,size:0.4,feather:0.5},mod:{target:2,depth:0.6,period:30},schedule:{on:true,from:'08:00',to:'20:00'}});window.__vs.setLayers([L]);})()`);
-      await wait(400); await shot('inspector-full');
+      // one layer with every advanced feature in use
+      await js(`(()=>{const L=VSPresets.layer('patchy',{mask:{shape:2,size:0.4,feather:0.5},mod:{target:2,depth:0.6,period:30},schedule:{on:true,from:'08:00',to:'20:00'},drift:[12,0]});window.__vs.setLayers([L]);window.__vs.setAdvanced(true);})()`);
+      await wait(1500); await shot('advanced');
+      await js(`window.__vs.setAdvanced(false)`);
       if (process.env.VS_SMOKE_TYPES) {
         const rect = await js(`(()=>{const r=document.getElementById('preview').getBoundingClientRect();return {x:Math.round(r.x)+1,y:Math.round(r.y)+1,width:480,height:300};})()`);
         for (const bg of ['light', 'dark']) {
@@ -296,10 +295,10 @@ function smokeTest() {
           }
         }
       }
-      await js(`window.__vs.setLayers(VSPresets.presetLayers('full'))`);
-      await js(`(()=>{const s=window.__vs.S; s.theme='dark'; window.__vs.renderAll();})()`);
-      await wait(2000); await shot('panel-dark');
-      log('theme ' + await js(`document.documentElement.dataset.theme + ' bg=' + getComputedStyle(document.body).backgroundColor`));
+      for (const [id, bg] of [['full', 'dark'], ['crt', 'scene'], ['film', 'light']]) {
+        await js(`(()=>{window.__vs.setLayers(VSPresets.presetLayers('${id}')); document.querySelector('#bgSeg [data-v=${bg}]').click();})()`);
+        await wait(1800); await shot('panel-' + id);
+      }
       log('dom ' + await js(`JSON.stringify({layers: document.querySelectorAll('#layerList .layer').length, groups: [...document.querySelectorAll('.group-head')].map(x=>x.textContent)})`));
       log('shader ' + await js(`(()=>{const r=new NoiseRenderer(document.createElement('canvas')); r._use(VSPresets.TYPES.map((_,i)=>i)); return NoiseRenderer.caseCount()+' cases, all-types program compiled in '+r.compileMs.toFixed(0)+' ms';})()`));
       log('settings file ' + settingsPath + ' exists=' + fs.existsSync(settingsPath));

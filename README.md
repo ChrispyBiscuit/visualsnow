@@ -6,6 +6,8 @@ Windows, macOS and Linux. No installer. Unzip and run. Apache 2.0 licence.
 
 **Download:** see the [Releases](../../releases) page.
 
+![The control panel](docs/panel.png)
+
 ---
 
 ## What it is for
@@ -112,12 +114,17 @@ npm start
 
 ## The control panel
 
-- **Layers** on the left. Drag to reorder, click the eye to hide, right-click for rename, duplicate, change type and remove.
-- **Preview** in the centre, on a light, dark, desktop-scene or your own photo background. 1:1 shows real device pixels. 2× and 4× zoom in to inspect dots.
-- **Inspector** on the right, in collapsible groups: Look, Timing, the type's own pattern settings, Colour, Motion, Mask, Modulation and Schedule. Click a value to type it. Arrow keys step, Shift steps ten times. Double-click a label or slider to reset. A small tick marks each default.
-- **Presets** open as a gallery with live thumbnails. Save your own, import and export them as JSON.
-- **Settings** hold theme, frame-rate cap, keep-on-top, start at login, displays, hotkeys (press the keys to record), calibration, safety and about.
-- Light and dark themes follow your system, or pick one.
+The panel uses a studio-hardware look: a dark matte faceplate, raised plates, a recessed display, one warm amber accent, large dials and the Barlow typeface.
+
+- **Header.** Step through presets with the arrows, or click the name to open the preset gallery with live thumbnails. Save and Delete work on your own presets. The Overlay switch turns the overlay on or off.
+- **Layers plate** on the left. The amber light shows a layer is on; click it to hide the layer. Double-click a name to rename it. Drag to reorder. Right-click for more. The Master dial sets the strength of all layers together.
+- **Display** in the centre. It shows the result on a dark, light, desktop-scene or photo background, with live readouts of size (in pixels and arcminutes), rate, density and opacity. 1:1 shows real screen pixels; 2× and 4× zoom in.
+- **Layer plate.** Layer type, dot polarity and Show (all, lights, darks) along the top. Four large dials for the main settings, then small dials for the type's own settings.
+- **Advanced plate**, switched on in the layer plate. Tint colour, mask area, vary over time and schedule along the top, and dials for tint, drift, mask and variation below.
+
+![The Advanced plate](docs/panel-advanced.png)
+
+Dials: drag up or down, hold Shift for fine control, scroll, or use the arrow keys (Shift for bigger steps, Home and End for the limits). Double-click a dial or its label to reset it. Click the value to type one.
 
 ## Hotkeys
 

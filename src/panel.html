@@ -7,99 +7,135 @@
 <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">
-    <span class="logo" aria-hidden="true"></span>
-    <span class="brand-name">Visual Snow Relief Kit</span>
+<header class="hdr">
+  <div class="brand"><span class="word">VISUAL SNOW</span><span class="word2">RELIEF KIT</span></div>
+  <div class="presetbar">
+    <button class="btn sq" id="prevPreset" title="Previous preset" aria-label="Previous preset">&lt;</button>
+    <button class="preset-name" id="presetBtn" title="Browse presets">
+      <span class="cap faint" id="presetCat">Preset</span>
+      <span class="pn" id="presetName">—</span>
+    </button>
+    <button class="btn sq" id="nextPreset" title="Next preset" aria-label="Next preset">&gt;</button>
   </div>
-  <button class="preset-btn" id="presetBtn" title="Presets">
-    <span class="preset-label">Preset</span>
-    <span class="preset-name" id="presetName">—</span>
-    <span data-icon="chevron-down"></span>
-  </button>
+  <button class="btn" id="savePresetBtn">Save</button>
+  <button class="btn" id="deletePresetBtn">Delete</button>
   <div class="spacer"></div>
-  <label class="master" title="Overlay on or off">
-    <span class="master-label" id="masterLabel">Overlay on</span>
-    <span class="switch lg"><input type="checkbox" id="enabled"><span class="track"></span></span>
+  <label class="pill-switch master">
+    <input type="checkbox" id="enabled" aria-label="Overlay on or off">
+    <span class="pill"></span>
+    <span class="cap" id="masterLabel">Overlay</span>
   </label>
-  <button class="icon-btn" id="settingsBtn" title="Settings"><span data-icon="settings-2"></span></button>
+  <button class="btn" id="settingsBtn">Settings</button>
 </header>
 
-<main class="workspace">
-  <aside class="pane layers-pane">
-    <div class="pane-head">
-      <span class="eyebrow">Layers</span>
-      <span class="count" id="layerCount"></span>
+<main class="rack" id="rack">
+  <section class="plate layers">
+    <div class="plate-head">
+      <span class="cap">Layers</span>
+      <span class="cap faint num" id="layerCount"></span>
     </div>
     <ul class="layer-list" id="layerList"></ul>
-    <div class="pane-foot">
-      <button class="btn block" id="addLayer"><span data-icon="plus"></span>Add layer</button>
-    </div>
-  </aside>
-
-  <section class="stage">
-    <div class="preview bg-light" id="preview">
-      <div class="scene" aria-hidden="true">
-        <div class="win">
-          <div class="win-bar"><i></i><i></i><i></i></div>
-          <div class="win-body">
-            <h4>Reading test</h4>
-            <p>The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump.</p>
-            <p class="muted">0123456789 · Sphinx of black quartz, judge my vow.</p>
-          </div>
-        </div>
-        <div class="sky"></div>
-      </div>
-      <img class="photo" id="photo" alt="">
-      <canvas id="pv"></canvas>
-      <div class="hud" id="hud"></div>
-    </div>
-    <div class="stage-bar">
-      <div class="seg" id="bgSeg" role="radiogroup" aria-label="Preview background">
-        <button data-v="light" class="on"><span data-icon="sun"></span>Light</button>
-        <button data-v="dark"><span data-icon="moon"></span>Dark</button>
-        <button data-v="scene"><span data-icon="monitor"></span>Scene</button>
-        <button data-v="photo"><span data-icon="image"></span>Photo</button>
-      </div>
-      <input type="file" id="photoInput" accept="image/*" hidden>
-      <div class="seg" id="zoomSeg" role="radiogroup" aria-label="Zoom">
-        <button data-v="1" class="on" title="One preview pixel is one screen pixel">1:1</button>
-        <button data-v="2">2×</button>
-        <button data-v="4">4×</button>
-      </div>
-      <div class="spacer"></div>
-      <div class="strength" id="strength"></div>
-    </div>
+    <button class="btn wide" id="addLayer"><span data-icon="plus"></span>Add layer</button>
+    <div class="divider"></div>
+    <div class="master-dial" id="masterDial"></div>
   </section>
 
-  <aside class="pane inspector" id="inspector">
-    <div class="empty" id="inspEmpty">
-      <span data-icon="layers-2"></span>
-      <p>No layer selected.</p>
-      <button class="btn" id="emptyAdd"><span data-icon="plus"></span>Add layer</button>
-    </div>
-    <div id="inspBody" hidden>
-      <div class="insp-head">
-        <input id="lname" class="name-input" spellcheck="false" aria-label="Layer name">
-        <button class="type-chip" id="typeBtn" title="Change type"></button>
-        <p class="type-look" id="typeLook"></p>
+  <section class="center">
+    <div class="display" id="display">
+      <div class="readout">
+        <div class="ro-left" id="roLeft"></div>
+        <div class="ro-right" id="roRight"></div>
       </div>
-      <div class="groups" id="groups"></div>
-      <div class="insp-foot">
-        <button class="btn ghost sm" id="reseed" title="New random pattern"><span data-icon="shuffle"></span>New seed</button>
-        <button class="btn ghost sm" id="dup"><span data-icon="copy"></span>Duplicate</button>
+      <div class="screen bg-dark" id="preview">
+        <div class="scene" aria-hidden="true">
+          <div class="sky"></div>
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i></div>
+            <div class="win-body">
+              <h4>Reading test</h4>
+              <p>The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump.</p>
+              <p class="muted">0123456789 · Sphinx of black quartz, judge my vow.</p>
+            </div>
+          </div>
+        </div>
+        <img class="photo" id="photo" alt="">
+        <canvas id="pv"></canvas>
+      </div>
+      <div class="display-bar">
+        <div class="seg" id="bgSeg" role="radiogroup" aria-label="Preview background">
+          <button data-v="dark">Dark</button>
+          <button data-v="light">Light</button>
+          <button data-v="scene">Scene</button>
+          <button data-v="photo">Photo</button>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" hidden>
         <div class="spacer"></div>
-        <button class="btn ghost sm danger" id="del"><span data-icon="trash-2"></span>Remove</button>
+        <span class="cap faint">Zoom</span>
+        <div class="seg" id="zoomSeg" role="radiogroup" aria-label="Zoom">
+          <button data-v="1" title="One preview pixel is one screen pixel">1:1</button>
+          <button data-v="2">2×</button>
+          <button data-v="4">4×</button>
+        </div>
       </div>
     </div>
-  </aside>
+
+    <section class="plate controls" id="controls">
+      <div class="empty" id="ctlEmpty" hidden>
+        <span class="cap faint">No layer selected</span>
+        <button class="btn" id="emptyAdd"><span data-icon="plus"></span>Add layer</button>
+      </div>
+      <div class="ctl" id="ctlBody">
+        <div class="ctl-top">
+          <div class="lfield"><span class="cap faint">Layer type</span><button class="combo" id="typeBtn" title="Change type"></button></div>
+          <div class="lfield" id="polField"><span class="cap faint">Dots</span><div class="seg" id="polSeg"></div></div>
+          <div class="lfield"><span class="cap faint">Show</span><div class="seg" id="showSeg"></div></div>
+          <div class="spacer"></div>
+          <label class="pill-switch" id="lockSw" title="Snap the rate to an even divisor of your display refresh rate. Removes beating on 60 and 144 Hz screens.">
+            <input type="checkbox" id="rateLock"><span class="pill"></span><span class="cap">Refresh lock</span>
+          </label>
+        </div>
+        <div class="dial-row lg" id="primary"></div>
+        <div class="dial-row sm" id="secondary"></div>
+        <div class="ctl-foot">
+          <label class="pill-switch">
+            <input type="checkbox" id="advToggle" aria-label="Show advanced controls">
+            <span class="pill"></span>
+            <span class="cap">Advanced</span>
+          </label>
+          <button class="btn" id="reseed">New seed</button>
+          <button class="btn" id="dup">Duplicate</button>
+          <button class="btn" id="del">Remove</button>
+          <span class="cap accent" id="advBadges"></span>
+          <div class="spacer"></div>
+          <span class="look" id="typeLook"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="plate advanced" id="advanced" hidden>
+      <div class="ctl-top">
+        <div class="lfield"><span class="cap faint">Tint colour</span><span class="swatch" id="swatchWrap"><input type="color" id="swatch" aria-label="Tint colour"></span></div>
+        <div class="lfield"><span class="cap faint">Mask area</span><select class="field" id="maskSel" aria-label="Mask area"></select></div>
+        <div class="lfield"><span class="cap faint">Vary over time</span><select class="field" id="modSel" aria-label="Vary over time"></select></div>
+        <div class="spacer"></div>
+        <label class="pill-switch" title="Show this layer only during part of the day.">
+          <input type="checkbox" id="schedOn"><span class="pill"></span><span class="cap">Schedule</span>
+        </label>
+        <input type="time" class="field time" id="schedFrom" aria-label="From">
+        <span class="cap faint">to</span>
+        <input type="time" class="field time" id="schedTo" aria-label="To">
+        <span class="cap faint sched-state" id="advNote"></span>
+      </div>
+      <div class="dial-row sm" id="advDials"></div>
+    </section>
+  </section>
 </main>
 
 <!-- Type gallery -->
 <dialog class="modal wide" id="typeDlg">
   <div class="modal-head">
     <h2 id="typeDlgTitle" tabindex="-1" autofocus>Add a layer</h2>
-    <button class="icon-btn" data-close><span data-icon="x"></span></button>
+    <button class="btn sq" data-close aria-label="Close"><span data-icon="x"></span></button>
   </div>
   <div class="tabs" id="familyTabs"></div>
   <div class="gallery" id="typeGallery"></div>
@@ -110,10 +146,10 @@
   <div class="modal-head">
     <h2 tabindex="-1" autofocus>Presets</h2>
     <div class="head-actions">
-      <button class="btn sm" id="savePreset"><span data-icon="save"></span>Save current</button>
-      <button class="btn ghost sm" id="importPreset"><span data-icon="upload"></span>Import</button>
-      <button class="btn ghost sm" id="exportPreset"><span data-icon="download"></span>Export</button>
-      <button class="icon-btn" data-close><span data-icon="x"></span></button>
+      <button class="btn" id="savePreset">Save current</button>
+      <button class="btn" id="importPreset">Import</button>
+      <button class="btn" id="exportPreset">Export</button>
+      <button class="btn sq" data-close aria-label="Close"><span data-icon="x"></span></button>
     </div>
   </div>
   <div class="gallery-scroll" id="presetGallery"></div>
@@ -123,16 +159,16 @@
 <dialog class="modal settings" id="settingsDlg">
   <div class="modal-head">
     <h2 tabindex="-1" autofocus>Settings</h2>
-    <button class="icon-btn" data-close><span data-icon="x"></span></button>
+    <button class="btn sq" data-close aria-label="Close"><span data-icon="x"></span></button>
   </div>
   <div class="settings-body">
     <nav class="settings-nav" id="settingsNav">
-      <button data-tab="general" class="on"><span data-icon="settings-2"></span>General</button>
-      <button data-tab="displays"><span data-icon="monitor"></span>Displays</button>
-      <button data-tab="hotkeys"><span data-icon="keyboard"></span>Hotkeys</button>
-      <button data-tab="calibration"><span data-icon="ruler"></span>Calibration</button>
-      <button data-tab="safety"><span data-icon="shield-alert"></span>Safety</button>
-      <button data-tab="about"><span data-icon="info"></span>About</button>
+      <button data-tab="general" class="on">General</button>
+      <button data-tab="displays">Displays</button>
+      <button data-tab="hotkeys">Hotkeys</button>
+      <button data-tab="calibration">Calibration</button>
+      <button data-tab="safety">Safety</button>
+      <button data-tab="about">About</button>
     </nav>
     <div class="settings-content" id="settingsContent"></div>
   </div>
@@ -141,18 +177,19 @@
 <!-- First run -->
 <dialog class="modal narrow" id="firstRunDlg">
   <div class="first-run">
-    <span class="logo xl" aria-hidden="true"></span>
-    <h2 tabindex="-1" autofocus>Visual Snow Relief Kit</h2>
+    <span class="mark xl" aria-hidden="true"></span>
+    <h2 tabindex="-1" autofocus>VISUAL SNOW</h2>
+    <span class="cap faint">Relief Kit</span>
     <p>Draws visual snow, grain and static over your whole screen. Clicks pass through it. Build your snow from layers, or start from a preset.</p>
     <div class="keys">
-      <div><kbd id="frToggle"></kbd><span>Overlay on or off</span></div>
-      <div><kbd id="frPanel"></kbd><span>Open this window</span></div>
+      <div><span class="cap">Overlay on or off</span><kbd id="frToggle"></kbd></div>
+      <div><span class="cap">Open this window</span><kbd id="frPanel"></kbd></div>
     </div>
-    <div class="callout warn">
+    <div class="callout">
       <span data-icon="shield-alert"></span>
       <p>Flicker can trigger migraine and, rarely, seizures. Start with low opacity. If you have photosensitive epilepsy, do not use this app. This is not medical advice.</p>
     </div>
-    <button class="btn primary block" id="frStart">Start</button>
+    <button class="btn primary wide" id="frStart">Start</button>
   </div>
 </dialog>
 
@@ -163,7 +200,7 @@
     <p id="askBody"></p>
     <input id="askInput" class="field" hidden maxlength="60" spellcheck="false">
     <div class="ask-actions">
-      <button value="cancel" class="btn ghost" formnovalidate>Cancel</button>
+      <button value="cancel" class="btn" formnovalidate>Cancel</button>
       <button value="ok" class="btn primary" id="askOk">OK</button>
     </div>
   </form>

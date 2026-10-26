@@ -11,6 +11,8 @@ Version 2.0 · 2026-10-26 · supersedes the noise and panel sections of `PRD.md`
 - Inspector groups are Look, Timing, the type's own pattern group, Colour, Motion, Mask, Modulation and Schedule.
 - Blend modes are named Show: All, Lights, Darks.
 
+**2.1 panel revision.** The panel was rebuilt in the "Studio" look of the author's FancyReverb (Chromosphere) plug-in, replacing section 3.4's light and dark theme system: near-black matte faceplate with fine grain, raised plates, recessed display, one amber accent, Barlow typeface with tracked small capitals, large knurled dials with lit arcs. The three-pane layout became a layers plate plus a display over a dial plate, with an Advanced plate for colour, motion, mask, variation and schedule. Dark only.
+
 ## 1. Why 2.0
 
 Two problems with 1.x.
