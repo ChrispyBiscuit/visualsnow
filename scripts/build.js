@@ -38,8 +38,10 @@ const targets = [
       // drop README and launcher into the folder
       fs.copyFileSync(path.join(root, 'README.md'), path.join(p, 'README.md'));
       fs.copyFileSync(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(p, 'THIRD_PARTY_NOTICES.md'));
+      // Marks this folder as a portable copy: settings are kept next to the app.
+      if (t.platform !== 'darwin') fs.writeFileSync(path.join(p, 'portable'), 'Settings for this copy are saved in this folder. Delete this file to use the user profile instead.\n');
       if (t.platform === 'linux') fs.writeFileSync(path.join(p, 'run.sh'), '#!/bin/sh\ncd "$(dirname "$0")" && "./Visual Snow Relief Kit" "$@"\n', { mode: 0o755 });
-      const zip = path.join(out, `VisualSnowReliefKit-${t.platform === 'win32' ? 'windows' : t.platform === 'darwin' ? 'macos' : 'linux'}-${t.arch}.zip`);
+      const zip = path.join(out, `VisualSnowReliefKit-portable-${t.platform === 'win32' ? 'windows' : t.platform === 'darwin' ? 'macos' : 'linux'}-${t.arch}.zip`);
       if (fs.existsSync(zip)) fs.unlinkSync(zip);
       // zip with symlinks preserved (-y) so mac frameworks stay valid
       execSync(`cd "${path.dirname(p)}" && zip -qry "${zip}" "${path.basename(p)}"`, { stdio: 'inherit' });

@@ -1,7 +1,7 @@
 {
   "name": "visual-snow-relief-kit",
   "productName": "Visual Snow Relief Kit",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Always-on-top, click-through noise and grain overlay for the whole desktop. Many noise types, research-based defaults, control panel.",
   "main": "src/main.js",
   "license": "Apache-2.0",
@@ -10,10 +10,110 @@
     "build": "node scripts/build.js",
     "build:linux": "node scripts/build.js linux",
     "build:win": "node scripts/build.js win32",
-    "build:mac": "node scripts/build.js darwin"
+    "build:mac": "node scripts/build.js darwin",
+    "installers": "electron-builder --publish never",
+    "installers:win": "electron-builder --win --publish never",
+    "installers:mac": "electron-builder --mac --publish never",
+    "installers:linux": "electron-builder --linux --publish never"
   },
   "devDependencies": {
     "@electron/packager": "^18.3.6",
-    "electron": "^33.4.11"
+    "electron": "^33.4.11",
+    "electron-builder": "26.17.0"
+  },
+  "homepage": "https://github.com/ChrispyBiscuit/visualsnow",
+  "author": {
+    "name": "Chris Villarreal",
+    "url": "https://github.com/ChrispyBiscuit"
+  },
+  "build": {
+    "appId": "app.visualsnow.reliefkit",
+    "productName": "Visual Snow Relief Kit",
+    "copyright": "Apache-2.0",
+    "directories": {
+      "output": "dist-installers",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
+      }
+    ],
+    "icon": "build/icon.png",
+    "publish": null,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "VisualSnowReliefKit-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Visual Snow Relief Kit",
+      "uninstallDisplayName": "Visual Snow Relief Kit",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "license": "LICENSE"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.utilities",
+      "identity": null,
+      "extendInfo": {
+        "LSUIElement": true
+      },
+      "artifactName": "VisualSnowReliefKit-${version}-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "Visual Snow Relief Kit"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "executableName": "visual-snow-relief-kit",
+      "synopsis": "Visual snow, grain and static overlay for the whole desktop",
+      "maintainer": "Chris Villarreal",
+      "artifactName": "VisualSnowReliefKit-${version}-linux-${arch}.${ext}"
+    }
   }
 }

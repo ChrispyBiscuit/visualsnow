@@ -56,54 +56,61 @@ Sources: a 2024 matching study of 31 people with VSS (University of Minnesota); 
 
 **Presets are layer stacks.** A preset is a list of layers, nothing more. User presets, exports and the built-in list share one format, so anything you build can be saved, shared and loaded on another machine.
 
-**Settings are one JSON object.** The panel edits it, the main process saves it and broadcasts it, the overlays apply it on the next frame. There is no other state. Portable mode keeps the file next to the executable when that folder is writable.
+**Settings are one JSON object.** The panel edits it, the main process saves it and broadcasts it, the overlays apply it on the next frame. There is no other state. Installed copies keep the file in the user profile; portable zips keep it next to the app.
 
 **Boring platform choices on purpose.** Electron, vanilla HTML, no framework, no native modules. That is what makes one code base run on three operating systems from a zip with no installer and no build step on the user's machine.
 
 ## Install
 
-There is no installer. The zip is the app.
+Download from the [latest release](../../releases/latest). Each platform has an installer and a portable zip.
 
 ### Windows
 
-1. Download `VisualSnowReliefKit-windows-x64.zip` from [Releases](../../releases).
-2. Right-click the zip, choose "Extract All", and pick a folder you can write to, for example `C:\Apps\Visual Snow Relief Kit` or your Desktop. Do not run it from inside the zip.
-3. Open the folder and double-click `Visual Snow Relief Kit.exe`.
-4. SmartScreen will warn because the app is not signed. Click "More info", then "Run anyway". This happens once.
+1. Download `VisualSnowReliefKit-Setup-<version>.exe`.
+2. Run it. SmartScreen warns once because the app is not signed: click "More info", then "Run anyway".
+3. Choose the install folder or keep the default. No administrator rights are needed.
+4. The installer adds Start menu and desktop shortcuts, and an entry in Settings, Apps for uninstalling.
 5. The control panel opens and the overlay is on. Close the panel and the app keeps running in the tray, next to the clock.
-6. Optional: in the panel, turn on "Start at login".
+6. Optional: in the panel, open Settings and turn on "Start at login".
 
-To uninstall, quit from the tray and delete the folder. Settings live in `visual-snow-settings.json` in that folder.
+To update, run the newer setup file. Your settings and presets are kept.
 
 ### macOS
 
-1. Download `VisualSnowReliefKit-macos-arm64.zip` for Apple Silicon (M1 and later) or `VisualSnowReliefKit-macos-x64.zip` for Intel.
-2. Double-click the zip to unpack it. Drag `Visual Snow Relief Kit.app` to Applications, or anywhere you like.
-3. Right-click the app, choose Open, then Open again in the dialog. This is needed once because the app is not signed.
-4. If macOS says the app is damaged or cannot be opened, open Terminal and run:
+1. Download `VisualSnowReliefKit-<version>-mac-arm64.dmg` for Apple Silicon (M1 and later) or `-mac-x64.dmg` for Intel.
+2. Open the .dmg and drag Visual Snow Relief Kit to Applications.
+3. The first time, right-click the app in Applications, choose Open, then Open again. This is needed once because the app is not signed.
+4. If macOS says the app is damaged or cannot be opened, run this in Terminal, then open it again:
    ```
    xattr -cr "/Applications/Visual Snow Relief Kit.app"
    ```
-   then open it again.
 5. The app runs from the menu bar. There is no Dock icon.
-6. Optional: turn on "Start at login" in the panel.
 
-To uninstall, quit from the menu bar icon and move the app to the Trash. Settings are in `~/Library/Application Support/Visual Snow Relief Kit`.
+To uninstall, quit from the menu bar icon and move the app to the Trash.
 
 ### Linux
 
-1. Download `VisualSnowReliefKit-linux-x64.zip`.
-2. Unzip it:
-   ```
-   unzip VisualSnowReliefKit-linux-x64.zip -d ~/Apps
-   cd ~/Apps/"Visual Snow Relief Kit-linux-x64"
-   ./run.sh
-   ```
-3. Needs X11 with a compositing window manager. Most desktops qualify. On Wayland, always-on-top and click-through depend on the desktop and may not work.
-4. If you see a sandbox error, run `./run.sh --no-sandbox` or set the owner and setuid bit on `chrome-sandbox` as the message says.
-5. For start at login, add `run.sh --hidden` to your desktop's startup applications.
+- **Debian, Ubuntu, Mint:** download the `.deb` and run `sudo apt install ./VisualSnowReliefKit-<version>-linux-amd64.deb`. The app appears in your applications menu. Remove it with `sudo apt remove visual-snow-relief-kit`.
+- **Any distribution:** download the `.AppImage`, make it executable with `chmod +x`, and run it.
 
-To uninstall, quit from the tray and delete the folder.
+Needs X11 with a compositing window manager. Most desktops qualify. On Wayland, always-on-top and click-through depend on the desktop and may not work.
+
+### Portable zip
+
+Prefer no install? Download `VisualSnowReliefKit-portable-<platform>.zip`, extract it anywhere, and run the app inside. Settings are saved in that folder, so it can live on a USB stick. To remove it, quit from the tray and delete the folder.
+
+### Moving from a portable copy to the installer
+
+Installed copies keep settings in your user profile, not next to the app. To bring your settings across:
+
+1. Quit the portable copy from the tray.
+2. Copy `visual-snow-settings.json` from the portable folder to:
+   - Windows: `%APPDATA%\Visual Snow Relief Kit\`
+   - macOS: `~/Library/Application Support/Visual Snow Relief Kit/`
+   - Linux: `~/.config/Visual Snow Relief Kit/`
+3. Start the installed app. You can then delete the portable folder.
+
+Or export your layers as a preset from the portable copy (Presets, Export) and import it in the installed app.
 
 ### From source
 
@@ -173,18 +180,18 @@ Every layer, whatever its type, also has:
 
 ## Settings file
 
-Portable mode: if the folder the app runs from is writable, settings are saved there as `visual-snow-settings.json`. Otherwise they go to the user profile. Settings, About shows the path. Export and Import move layer sets between machines as JSON. Settings and presets from 1.x are upgraded automatically on first start.
+Installed copies save `visual-snow-settings.json` in your user profile. Portable zips save it in the unzipped folder. Settings, About shows the path. Export and Import move layer sets between machines as JSON. Settings and presets from 1.x are upgraded automatically on first start.
 
 ## Build from source
 
 ```
 npm install
-npm start            # run from source
-npm run build        # zips for all platforms into dist/
-npm run build:win    # one platform: win32, darwin or linux
+npm start                # run from source
+npm run installers       # installer for this platform into dist-installers/
+npm run build            # portable zips for all platforms into dist/
 ```
 
-Needs Node 18 or newer and `zip` on the PATH. Builds for every platform from any platform.
+Needs Node 18 or newer. Portable zips need `zip` on the PATH and build for every platform from any platform. Installers build on their own platform: the Windows setup on Windows, the .dmg on macOS, the AppImage and .deb on Linux. The release workflow does all three on GitHub.
 
 ## Limits
 

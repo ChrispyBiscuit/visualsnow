@@ -24,14 +24,19 @@ let hotkeyStatus = {};
 let hotkeysSuspended = false;
 
 // ---------- settings file ----------
+// Portable zips ship a "portable" marker file next to the executable; only then are
+// settings kept in that folder. Installed copies use the per-user app data folder,
+// so updates and uninstalls never touch them.
 function resolveSettingsPath() {
   const name = 'visual-snow-settings.json';
   if (!isMac && !process.defaultApp) {
     const exeDir = path.dirname(process.execPath);
-    try {
-      fs.accessSync(exeDir, fs.constants.W_OK);
-      return path.join(exeDir, name); // portable mode
-    } catch (_) { /* fall through */ }
+    if (fs.existsSync(path.join(exeDir, 'portable'))) {
+      try {
+        fs.accessSync(exeDir, fs.constants.W_OK);
+        return path.join(exeDir, name);
+      } catch (_) { /* read-only folder: fall through */ }
+    }
   }
   return path.join(app.getPath('userData'), name);
 }
@@ -154,7 +159,7 @@ function showPanel() {
     width: 1280, height: 880, minWidth: 1080, minHeight: 720,
     title: 'Visual Snow Relief Kit',
     backgroundColor: '#121315',
-    icon: makeIcon(128),
+    icon: fs.existsSync(path.join(__dirname, 'assets', 'icon.png')) ? nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.png')) : makeIcon(128),
     autoHideMenuBar: true,
     show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true }

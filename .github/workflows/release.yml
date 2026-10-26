@@ -1,8 +1,8 @@
 name: Release
 
-# Builds the portable zips on every push to main and publishes them as a
-# GitHub release tagged v<version> from package.json. Bump the version to cut
-# a new release. A push with the same version updates the existing release.
+# On every push to main: build installers on each operating system and the portable
+# zips, then publish them all as a GitHub release tagged v<version> from package.json.
+# Bump the version to cut a new release. A push with the same version updates it.
 on:
   push:
     branches: [main]
@@ -13,7 +13,40 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  installers:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: installers:win
+            files: dist-installers/*.exe
+          - os: macos-latest
+            script: installers:mac
+            files: dist-installers/*.dmg
+          - os: ubuntu-latest
+            script: installers:linux
+            files: |
+              dist-installers/*.AppImage
+              dist-installers/*.deb
+    runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run ${{ matrix.script }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  portable:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,27 +56,47 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Remove unpacked folders
-        run: rm -rf dist/Visual\ Snow*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    needs: [installers, portable]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
       - name: Read version
         id: v
         run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - run: ls -la out
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.v.outputs.tag }}
           name: Visual Snow Relief Kit ${{ steps.v.outputs.tag }}
           body: |
-            Portable zips. Unzip and run. No installer.
+            ## Install
 
-            - `VisualSnowReliefKit-windows-x64.zip` — Windows 10/11
-            - `VisualSnowReliefKit-macos-arm64.zip` — macOS, Apple Silicon
-            - `VisualSnowReliefKit-macos-x64.zip` — macOS, Intel
-            - `VisualSnowReliefKit-linux-x64.zip` — Linux x64 (X11)
+            | Platform | File |
+            |---|---|
+            | Windows 10 and 11 | `VisualSnowReliefKit-Setup-*.exe` |
+            | macOS, Apple Silicon | `VisualSnowReliefKit-*-mac-arm64.dmg` |
+            | macOS, Intel | `VisualSnowReliefKit-*-mac-x64.dmg` |
+            | Linux, any distribution | `VisualSnowReliefKit-*-linux-x86_64.AppImage` |
+            | Debian, Ubuntu, Mint | `VisualSnowReliefKit-*-linux-amd64.deb` |
 
-            Install steps per platform are in the README.
-          files: dist/*.zip
-      - uses: actions/upload-artifact@v4
-        with:
-          name: zips
-          path: dist/*.zip
+            The installers add Start menu or Applications entries and an uninstaller.
+
+            ## Portable
+
+            Unzip and run, no install. Settings stay in the unzipped folder.
+            `VisualSnowReliefKit-portable-windows-x64.zip`, `-macos-arm64.zip`, `-macos-x64.zip`, `-linux-x64.zip`.
+
+            The apps are not code-signed. Windows SmartScreen and macOS Gatekeeper ask once; see the README for the steps.
+          files: out/*

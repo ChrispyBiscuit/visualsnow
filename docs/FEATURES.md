@@ -337,7 +337,7 @@ Sources are listed in the [README](../README.md#what-the-research-says-and-how-i
 | Overlay | One transparent, click-through, always-on-top window per screen. It re-asserts its place on top every second. |
 | Rendering | WebGL 2. All layers draw in one pass. The renderer compiles a small shader holding only the types in use, so cost stays flat as the catalog grows. |
 | Frame rate | Each layer changes at its own rate in hertz. The renderer skips frames when nothing would change, so 18 Hz snow draws far fewer frames than the screen refresh rate. |
-| Portability | Unzip and run on Windows, macOS (Intel and Apple Silicon) or Linux. Settings stay next to the app when its folder is writable. |
+| Install | Windows setup with Start menu shortcut and uninstaller, macOS .dmg, Linux AppImage and .deb. Portable zips for no-install use. |
 | Hotkeys | Ctrl+Alt+V toggles the overlay. Ctrl+Alt+Shift+V opens the panel. On macOS, Cmd replaces Ctrl. |
 | Licence | Apache 2.0. Free to use, change and share. |
 
