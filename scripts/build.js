@@ -27,7 +27,7 @@ const targets = [
       overwrite: true,
       asar: true,
       prune: true,
-      ignore: [/^\/dist/, /^\/scripts/, /^\/PRD.*\.md/, /^\/\.git/, /^\/\.github/, /^\/node_modules\/\.cache/],
+      ignore: [/^\/dist/, /^\/scripts/, /^\/PRD.*\.md/, /^\/\.git/, /^\/\.github/, /^\/docs/, /^\/node_modules\/\.cache/],
       appCopyright: 'Apache-2.0',
       appBundleId: 'app.visualsnow.reliefkit',
       appCategoryType: 'public.app-category.utilities',
